@@ -8,11 +8,11 @@ end
 
 const BENCHMARKS = [
    #Benchmark("binarytrees", 21, 10),
-    Benchmark("fannkuchredux", 12, 7),
+  #  Benchmark("fannkuchredux", 12, 7),
    # Benchmark("fasta", 25000000, 1000),
    # Benchmark("knucleotide", 25000000, "knucleotide-input.txt"),
-    Benchmark("mandelbrot", 16000, 200),
-    Benchmark("nbody", 50000000, 1000),
+  #  Benchmark("mandelbrot", 16000, 200),
+   # Benchmark("nbody", 50000000, 1000),
   #  Benchmark("pidigits", 10000, 27),
  #   Benchmark("regexredux", 5000000, "regexredux-input.txt"),
  #   Benchmark("revcomp", "0 < revcomp-input.txt"),
@@ -40,6 +40,7 @@ for benchmark in BENCHMARKS
             end
         else
             time = @elapsed run(cmd)
+            println("Time: $time")
         end
     end
 end
