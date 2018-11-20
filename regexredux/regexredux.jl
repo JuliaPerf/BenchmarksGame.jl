@@ -47,7 +47,7 @@ function perf_regex_dna()
     end
 
     println()
-    println(l1)
+    println(l1 + 1)  # why + 1??
     println(l2)
     println(length(seq))
 end

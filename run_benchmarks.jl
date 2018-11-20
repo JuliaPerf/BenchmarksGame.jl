@@ -1,3 +1,4 @@
+using DeepDiffs
 verify = "verify" in ARGS
 
 struct Benchmark
@@ -7,40 +8,48 @@ struct Benchmark
 end
 
 const BENCHMARKS = [
-   #Benchmark("binarytrees", 21, 10),
-  #  Benchmark("fannkuchredux", 12, 7),
-   # Benchmark("fasta", 25000000, 1000),
-   # Benchmark("knucleotide", 25000000, "knucleotide-input.txt"),
-  #  Benchmark("mandelbrot", 16000, 200),
-   # Benchmark("nbody", 50000000, 1000),
-  #  Benchmark("pidigits", 10000, 27),
- #   Benchmark("regexredux", 5000000, "regexredux-input.txt"),
- #   Benchmark("revcomp", "0 < revcomp-input.txt"),
+    Benchmark("binarytrees", 21, 10),
+    Benchmark("fannkuchredux", 12, 7),
+    Benchmark("fasta", 25000000, 1000),
+   #Benchmark("knucleotide", 25000000, "knucleotide-input.txt"),
+    Benchmark("mandelbrot", 16000, 200),
+    Benchmark("nbody", 50000000, 1000),
+    Benchmark("pidigits", 10000, 27),
+    Benchmark("regexredux", 5000000, "regexredux-input.txt"),
+#    Benchmark("revcomp", 25000000, "revcomp-input.txt"),
     Benchmark("spectralnorm", 5500, 100),
 ]
 
 verify && println("VERIFYING!")
+error = false
 for benchmark in BENCHMARKS
     dir = benchmark.name
     _arg = verify ? benchmark.verify : benchmark.benchmark
-    arg = _arg isa String ? "0 < $(_arg)" : string(_arg)
     println("Running $dir")
     bdir = joinpath(@__DIR__, dir)
+    arg, input = _arg isa String ? ("", "$(joinpath(bdir, _arg))") : (string(_arg), "")
     for file in readdir(bdir)
         endswith(file, ".jl") || continue
         println("    $file:")
-        cmd = `$(Base.julia_cmd()) $(joinpath(bdir, file)) $(arg)`
+        if !isempty(input)
+            cmd = pipeline(`$(Base.julia_cmd()) $(joinpath(bdir, file)) `; stdin=input)
+        else
+            cmd = `$(Base.julia_cmd()) $(joinpath(bdir, file)) $(arg)`
+        end
         if verify
             bench_output = read(cmd, String)
             correct_output = read(joinpath(bdir, string(dir, "-output.txt")), String)
             if bench_output != correct_output
-                @show bench_output
-                @show correct_output
-                error()
+                println(deepdiff(bench_output, correct_output))
+                error = true
             end
         else
             time = @elapsed run(cmd)
             println("Time: $time")
         end
     end
+end
+
+if error
+    error("Some verification failed")
 end
