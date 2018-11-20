@@ -10,23 +10,20 @@ using Printf
 
 @everywhere abstract type BTree end
 
-@everywhere struct Empty <: BTree
-end
-
 @everywhere struct Node <: BTree
-    left::BTree
-    right::BTree
+  left::Union{Nothing,Node}
+  right::Union{Nothing,Node}
 end
 
 @everywhere function make(d)
     if d == 0
-        Node(Empty(), Empty())
+        Node(nothing, nothing)
     else
         Node(make(d-1), make(d-1))
     end
 end
 
-@everywhere check(t::Empty) = 0
+@everywhere check(t::Nothing) = 0
 @everywhere check(t::Node) = 1 + check(t.left) + check(t.right)
 
 function loop_depths(min_depth, max_depth)
