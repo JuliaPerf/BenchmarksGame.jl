@@ -13,7 +13,7 @@ const BENCHMARKS = [
     Benchmark("binarytrees", 21, 10),
     Benchmark("fannkuchredux", 12, 7),
     Benchmark("fasta", 25000000, 1000),
-   #Benchmark("knucleotide", 25000000, "knucleotide-input.txt"),
+    #Benchmark("knucleotide", 25000000, "knucleotide-input.txt"),
     Benchmark("mandelbrot", 16000, 200),
     Benchmark("nbody", 50000000, 1000),
     Benchmark("pidigits", 10000, 27),
@@ -53,7 +53,7 @@ for benchmark in BENCHMARKS
         end
     end
 end
-TimerOutputs.print_timer(; compact=true)
+TimerOutputs.print_timer(; compact=true, allocations=false)
 
 if error
     error("Some verification failed")
