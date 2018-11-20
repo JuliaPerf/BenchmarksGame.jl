@@ -1,4 +1,6 @@
 using DeepDiffs
+using TimerOutputs
+
 verify = "verify" in ARGS
 
 struct Benchmark
@@ -22,33 +24,36 @@ const BENCHMARKS = [
 
 verify && println("VERIFYING!")
 error = false
+TimerOutputs.reset_timer!()
 for benchmark in BENCHMARKS
     dir = benchmark.name
     _arg = verify ? benchmark.verify : benchmark.benchmark
     println("Running $dir")
     bdir = joinpath(@__DIR__, dir)
     arg, input = _arg isa String ? ("", "$(joinpath(bdir, _arg))") : (string(_arg), "")
-    for file in readdir(bdir)
-        endswith(file, ".jl") || continue
-        println("    $file:")
-        if !isempty(input)
-            cmd = pipeline(`$(Base.julia_cmd()) $(joinpath(bdir, file)) `; stdin=input)
-        else
-            cmd = `$(Base.julia_cmd()) $(joinpath(bdir, file)) $(arg)`
-        end
-        if verify
-            bench_output = read(cmd, String)
-            correct_output = read(joinpath(bdir, string(dir, "-output.txt")), String)
-            if bench_output != correct_output
-                println(deepdiff(bench_output, correct_output))
-                error = true
+    @timeit dir begin
+        for file in readdir(bdir)
+            endswith(file, ".jl") || continue
+            println("    $file:")
+            if !isempty(input)
+                cmd = pipeline(`$(Base.julia_cmd()) $(joinpath(bdir, file)) `; stdin=input)
+            else
+                cmd = `$(Base.julia_cmd()) $(joinpath(bdir, file)) $(arg)`
             end
-        else
-            time = @elapsed run(cmd)
-            println("Time: $time")
+            if verify
+                bench_output = read(cmd, String)
+                correct_output = read(joinpath(bdir, string(dir, "-output.txt")), String)
+                if bench_output != correct_output
+                    println(deepdiff(bench_output, correct_output))
+                    error = true
+                end
+            else
+                @timeit file run(cmd)
+            end
         end
     end
 end
+TimerOutputs.print_timer(; compact=true)
 
 if error
     error("Some verification failed")
