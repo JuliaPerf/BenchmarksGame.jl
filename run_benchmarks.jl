@@ -24,6 +24,7 @@ const BENCHMARKS = [
 
 verify && println("VERIFYING!")
 error = false
+result_file = "result.bin"
 TimerOutputs.reset_timer!()
 for benchmark in BENCHMARKS
     dir = benchmark.name
@@ -36,19 +37,18 @@ for benchmark in BENCHMARKS
             endswith(file, ".jl") || continue
             println("    $file:")
             if !isempty(input)
-                cmd = pipeline(`$(Base.julia_cmd()) $(joinpath(bdir, file)) `; stdin=input)
+                cmd = pipeline(`$(Base.julia_cmd()) $(joinpath(bdir, file)) `; stdin=input, stdout = result_file)
             else
-                cmd = `$(Base.julia_cmd()) $(joinpath(bdir, file)) $(arg)`
+                cmd = pipeline(`$(Base.julia_cmd()) $(joinpath(bdir, file)) $(arg)`; stdout = result_file)
             end
+            @timeit file run(cmd)
             if verify
-                bench_output = read(cmd, String)
+                bench_output = read(result_file, String)
                 correct_output = read(joinpath(bdir, string(dir, "-output.txt")), String)
                 if bench_output != correct_output
                     println(deepdiff(bench_output, correct_output))
                     error = true
                 end
-            else
-                @timeit file run(cmd)
             end
         end
     end
