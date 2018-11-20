@@ -9,7 +9,7 @@ using Printf
 
 import Base.isless
 
-function count(data::AbstractString, n::Int)
+function count_data(data::AbstractString, n::Int)
     counts = Dict{AbstractString, Int}()
     top = length(data) - n + 1
     for i = 1:top
@@ -20,11 +20,11 @@ function count(data::AbstractString, n::Int)
             counts[s] = 1
         end
     end
-    counts
+    return counts
 end
 
 function count_one(data::AbstractString, s::AbstractString)
-    count(data, length(s))[s]
+    count_data(data, length(s))[s]
 end
 
 mutable struct KNuc
@@ -61,15 +61,15 @@ function print_knucs(a::Array{KNuc, 1})
     println()
 end
 
-function perf_k_nucleotide()
+function perf_k_nucleotide(io = stdin)
     three = ">THREE "
     while true
-        line = readline()
+        line = readline(io)
         if length(line) >= length(three) && line[1:length(three)] == three
             break
         end
     end
-    data = collect(read(stdin, String))
+    data = collect(read(io, String))
     # delete the newlines and convert to upper case
     i, j = 1, 1
     while i <= length(data)
@@ -81,8 +81,8 @@ function perf_k_nucleotide()
     end
     str = join(data[1:j-1], "")
 
-    arr1 = sorted_array(count(str, 1))
-    arr2 = sorted_array(count(str, 2))
+    arr1 = sorted_array(count_data(str, 1))
+    arr2 = sorted_array(count_data(str, 2))
 
     print_knucs(arr1)
     print_knucs(arr2)
@@ -92,4 +92,5 @@ function perf_k_nucleotide()
 end
 
 perf_k_nucleotide()
+# perf_k_nucleotide(open("knucleotide-input.txt", "r"))
 
