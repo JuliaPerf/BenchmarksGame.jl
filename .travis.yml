@@ -11,4 +11,5 @@ julia:
 notifications:
   email: false
 script:
+  - julia --project -e 'import Pkg; Pkg.instantiate()'
   - julia --project --color=yes run_benchmarks.jl
