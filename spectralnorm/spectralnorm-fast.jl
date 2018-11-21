@@ -6,7 +6,7 @@
 
 using Printf
 
-A(i,j) = 1.0 / ((i+j)*(i+j+1.0)/2.0+i+1.0)
+A(i,j) = @fastmath 1.0 / ((i+j)*(i+j+1.0)/2.0+i+1.0)
 
 @inline function Au!(w, u)
     n = length(u)
