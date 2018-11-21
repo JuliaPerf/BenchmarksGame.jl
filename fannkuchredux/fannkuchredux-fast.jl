@@ -47,21 +47,21 @@ Base.@propagate_inbounds function first_permutation(perm::Perm, idx)
     p = perm.p
     pp = perm.pp
 
-    for i = 1:length(p)
+    for i = Int32(1):Int32(length(p))
         p[i] = i - 1
     end
 
-    for i = length(p):-1:2
+    for i = Int32(length(p)):Int32(-1):Int32(2)
         ifact = factorial(i-1)
         d = idx ÷ ifact
         perm.count[i] = d
         idx = idx % ifact
 
-        for j = 1:i
+        for j = Int32(1):i
             pp[j] = p[j]
         end
 
-        for j = 1:i
+        for j = Int32(1):i
             p[j] = j+d <= i ? pp[j+d] : pp[j+d-i]
         end
     end
@@ -160,7 +160,7 @@ function runf(f::Fannkuch)
 
     taskId = f.taskId # atomic
     while (task = Threads.atomic_add!(taskId, 1)) < f.ntasks
-        run_task(f, perm, task)
+        @inbounds run_task(f, perm, task)
     end
 end
 
