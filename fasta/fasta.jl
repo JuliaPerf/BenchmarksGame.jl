@@ -25,25 +25,46 @@ const IA  =   3877.0
 const IC  =  29573.0
 
 function gen_random()
-    global rng_state = ((rng_state::Float64 * IA + IC) % IM) / IM
+    global rng_state = ((rng_state::Float64 * IA + IC) % IM)
 end
 
 function repeat_fasta(src, n)
     k = length(src)
-    return string(src, src, src[1:n % k])
+    s = string(src, src, src[1:(n % k)])
+    I = Iterators.cycle(src)
+    col = 1
+    count = 1
+    c, state = iterate(I)
+    print(c)
+    while count < n
+        col += 1
+        c, state = iterate(I, state)
+        print(c)
+        if col == line_width
+            println()
+            col = 0
+        end
+        count += 1
+    end
+    println()
+    return
 end
 
 function choose_char(cs)
     k = length(cs)
-    r = gen_random()
+    r = gen_random() / IM
     r < cs[1] && return 1
     a = 1
     b = k
     while b > a + 1
         c = fld(a + b, 2)
-        if r < cs[c]; b = c; else a = c; end
+        if r < cs[c]
+            b = c
+        else
+            a = c
+        end
     end
-    b
+    return b
 end
 
 function random_fasta(symb, pr, n)
@@ -52,18 +73,25 @@ function random_fasta(symb, pr, n)
     k = n
     while k > 0
         m = min(k, line_width)
+        resize!(line, m)
         for i = 1:m
             line[i] = symb[choose_char(cs)]
         end
+        println(String(copy(line)))
         k -= line_width
     end
+    return
 end
 
 rng_state = 42.0
 
 function perf_fasta(n=25000000)
+  println(">ONE Homo sapiens alu")
   repeat_fasta(alu, 2n)
+
+  println(">TWO IUB ambiguity codes")
   random_fasta(iub1, iub2, 3n)
+  println(">THREE Homo sapiens frequency")
   random_fasta(homosapiens1, homosapiens2, 5n)
 end
 
