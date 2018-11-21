@@ -20,7 +20,7 @@ const BENCHMARKS = [
     Benchmark("mandelbrot", 16000, 200),
     Benchmark("nbody", 50000000, 1000),
     Benchmark("pidigits", 10000, 27),
-    Benchmark("regexredux", 5000000, "regexredux/regexredux-input.txt"),
+    Benchmark("regexredux", "fasta.txt", "regexredux/regexredux-input.txt", true),
     Benchmark("revcomp", "fasta.txt", "revcomp/revcomp-input.txt", true),
     Benchmark("spectralnorm", 5500, 100),
 ]
