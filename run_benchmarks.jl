@@ -8,18 +8,20 @@ struct Benchmark
     name::String
     benchmark::Union{Number, String}
     verify::Union{Number, String}
+    requires_fasta::Bool
 end
+Benchmark(name, benchmark, verify) = Benchmark(name, benchmark, verify, false)
 
 const BENCHMARKS = [
     Benchmark("binarytrees", 21, 10),
     Benchmark("fannkuchredux", 12, 7),
     Benchmark("fasta", 25000000, 1000),
-    Benchmark("knucleotide", "knucleotide-input-bench.txt", "knucleotide-input.txt"),
+    Benchmark("knucleotide", "fasta.txt", "knucleotide-input.txt", true),
     Benchmark("mandelbrot", 16000, 200),
     Benchmark("nbody", 50000000, 1000),
     Benchmark("pidigits", 10000, 27),
     Benchmark("regexredux", 5000000, "regexredux-input.txt"),
-    Benchmark("revcomp", "revcomp-input-bench.txt", "revcomp-input.txt"),
+    Benchmark("revcomp", "fasta.txt", "revcomp-input.txt", true),
     Benchmark("spectralnorm", 5500, 100),
 ]
 
@@ -29,11 +31,18 @@ function run_benchmarks()
     result_file = "result.bin"
     TimerOutputs.reset_timer!()
     for benchmark in BENCHMARKS
+        if !verify && benchmark.requires_fasta
+            if !isfile(joinpath(@__DIR__, "fasta.txt"))
+                fasta_gen = joinpath(@__DIR__, "fasta", "fasta.jl")
+                @info "Generating fasta file"
+                run(pipeline(`$(Base.julia_cmd()) $fasta_gen 25000000` ;stdout = "fasta.txt"))
+            end
+        end
         dir = benchmark.name
         _arg = verify ? benchmark.verify : benchmark.benchmark
         println("Running $dir")
         bdir = joinpath(@__DIR__, dir)
-        arg, input = _arg isa String ? ("", "$(joinpath(bdir, _arg))") : (string(_arg), "")
+        arg, input = _arg isa String ? ("", "$(_arg)") : (string(_arg), "")
         @timeit dir begin
             for file in readdir(bdir)
                 endswith(file, ".jl") || continue
