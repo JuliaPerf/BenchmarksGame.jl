@@ -24,30 +24,31 @@ const revcompdata = Dict(
 )
 
 function print_buff(b)
+    isempty(b) && return
     br = reverse(b)
     l = length(br)
     for i = 1:60:l
         if i+59 > l
-            write(br[i:end]); println()
+            println(String(br[i:end]))
         else
-            write(br[i:i+59]); println()
+            println(String(br[i:i+59]))
         end
     end
 end
 
-function perf_revcomp()
+function perf_revcomp(io=stdin)
     buff = UInt8[]
     while true
-        line = codeunits(readline())
+        line = codeunits(readline(io))
         if isempty(line)
             print_buff(buff)
             return
         elseif line[1] == UInt8('>')
             print_buff(buff)
             buff = UInt8[]
-            write(line)
+            println(String(line))
         else
-            l = length(line)-1
+            l = length(line)
             let line = line # Workaround for julia#15276
                 append!(buff, [UInt8(revcompdata[Char(line[i])]) for i=1:l])
             end
@@ -56,4 +57,3 @@ function perf_revcomp()
 end
 
 perf_revcomp()
-
