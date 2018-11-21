@@ -24,7 +24,8 @@ function count_data(data::AbstractString, n::Int)
 end
 
 function count_one(data::AbstractString, s::AbstractString)
-    count_data(data, length(s))[s]
+    d = count_data(data, length(s))
+    return haskey(d, s) ? d[s] : 0
 end
 
 mutable struct KNuc
