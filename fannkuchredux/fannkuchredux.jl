@@ -1,78 +1,182 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 
-# contributed by Jarret Revels and Alex Arslan
-# based on the Javascript program
+# based on Oleg Mazurov's Java Implementation
+# transliterated by Hamza Yusuf Çakır
 
-function perf_fannkuch(n)
-    p = Vector{Int32}(undef, n)
-    for i = 1:n
-        p[i] = i
+global const nchunks = 150
+
+struct Fannkuch
+    n::Int64
+    chunksz::Int32
+    ntasks::Int32
+    maxflips::Vector{Int32}
+    chksums::Vector{Int32}
+    taskId::Threads.Atomic{Int}
+
+    function Fannkuch(n)
+        nfact = factorial(n)
+
+        chunksz = (nfact + nchunks - 1) ÷ nchunks
+        ntasks = (nfact + chunksz - 1) ÷ chunksz
+
+        maxflips = Vector{Int32}(undef, ntasks)
+        chksums = Vector{Int32}(undef, ntasks)
+
+        taskId = Threads.Atomic{Int}(0)
+
+        new(n, chunksz, ntasks, maxflips, chksums, taskId)
     end
-    q = copy(p)
-    s = copy(p)
-    sign = 1; maxflips = sum = 0
-    while true
-        q0 = p[1]
-        if q0 != 1
-            for i = 2:n
-                q[i] = p[i]
-            end
-            flips = 1
-            while true
-                qq = q[q0] #??
-                if qq == 1
-                    sum += sign*flips
-                    flips > maxflips && (maxflips = flips)
-                    break
-                end
-                q[q0] = q0
-                if q0 >= 4
-                    i = 2; j = q0-1
-                    while true
-                        t = q[i]
-                        q[i] = q[j]
-                        q[j] = t
-                        i += 1
-                        j -= 1
-                        i >= j && break
-                    end
-                end
-                q0 = qq
-                flips += 1
-            end
+end
+
+struct Perm
+    p::Vector{Int32}
+    pp::Vector{Int32}
+    count::Vector{Int32}
+
+    function Perm(n)
+        p = zeros(Int32, n)
+        pp = zeros(Int32, n)
+        count = zeros(Int32, n)
+
+        new(p, pp, count)
+    end
+end
+
+Base.@propagate_inbounds function first_permutation(perm::Perm, idx)
+    p = perm.p
+    pp = perm.pp
+
+    for i = 1:length(p)
+        p[i] = i - 1
+    end
+
+    for i = length(p):-1:2
+        ifact = factorial(i-1)
+        d = idx ÷ ifact
+        perm.count[i] = d
+        idx = idx % ifact
+
+        for j = 1:i
+            pp[j] = p[j]
         end
-        #permute
-        if sign == 1
-            t = p[2]
-            p[2] = p[1]
-            p[1] = t
-            sign = -1
-        else
-            t = p[2]
-            p[2] = p[3]
-            p[3] = t
-            sign = 1
-            for i = 3:n
-                sx = s[i]
-                if sx != 1
-                    s[i] = sx-1
-                    break
-                end
-                i == n && return [sum,maxflips]
-                s[i] = i
-                t = p[1]
-                for j = 1:i
-                    p[j] = p[j+1]
-                end
-                p[i+1] = t
-            end
+
+        for j = 1:i
+            p[j] = j+d <= i ? pp[j+d] : pp[j+d-i]
         end
     end
 end
 
-n = parse(Int,ARGS[1])
-pf = perf_fannkuch(n)
-println(pf[1])
-println("Pfannkuchen(", n, ") = ", pf[2])
+Base.@propagate_inbounds function next_permutation(perm::Perm)
+    p = perm.p
+    count = perm.count
 
+    first = p[2]
+    p[2]  = p[1]
+    p[1]  = first
+
+    i = 2
+    while (count[i] += 1) > i - 1
+        count[i] = 0
+        i += 1
+
+        next = p[1] = p[2]
+
+        for j = 1:i-1
+            p[j] = p[j+1]
+        end
+
+        p[i] = first
+        first = next
+    end
+end
+
+Base.@propagate_inbounds function count_flips(perm::Perm)
+    p = perm.p
+    pp = perm.pp
+
+    flips = 1
+    first = p[1]
+
+    if p[first + 1] != 0
+        pp .= p
+
+        while true # do..while(pp[first+1] != 0)
+            flips += 1
+
+            lo = 1; hi = first - 1
+            while lo < hi
+                t = pp[lo+1]
+                pp[lo+1] = pp[hi+1]
+                pp[hi+1] = t
+                lo += 1
+                hi -= 1
+            end
+
+            t = pp[first+1]
+            pp[first+1] = first
+            first = t
+
+            (pp[first+1] == 0) && break
+        end
+    end
+
+    return flips
+end
+
+Base.@propagate_inbounds function run_task(f::Fannkuch, perm::Perm, task)
+    idxmin = task * f.chunksz
+    idxmax = min(factorial(f.n), idxmin + f.chunksz)
+
+    first_permutation(perm, idxmin)
+
+    maxflips = 1
+    chksum = 0
+
+    let
+        i = idxmin
+        while true
+            if perm.p[1] != 0
+                flips = count_flips(perm)
+                maxflips = max(maxflips, flips)
+                chksum += iseven(i) ? flips : -flips
+            end
+
+            i += 1
+            if i == idxmax
+                break
+            end
+
+            next_permutation(perm)
+        end
+    end
+
+    f.maxflips[task+1] = maxflips
+    f.chksums[task+1] = chksum
+end
+
+function runf(f::Fannkuch)
+    perm = Perm(f.n)
+
+    taskId = f.taskId # atomic
+    while (task = Threads.atomic_add!(taskId, 1)) < f.ntasks
+        run_task(f, perm, task)
+    end
+end
+
+function fannkuchredux(n::Int)
+    f = Fannkuch(n)
+
+    Threads.@threads for i = 1:Threads.nthreads()
+        runf(f)
+    end
+
+    chk = sum(f.chksums)
+    res = maximum(f.maxflips)
+
+    return (chk, res)
+end
+
+n = parse(Int, ARGS[1])
+chk, res = fannkuchredux(n)
+println(chk, "\nPfannkuchen(", n, ") = ", res)
