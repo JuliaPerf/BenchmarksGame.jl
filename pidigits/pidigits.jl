@@ -43,8 +43,5 @@ function pidigits(N::Int)
     end
 end
 
-#n = parse(Int,ARGS[1])
-n = 27
+n = parse(Int,ARGS[1])
 pidigits(n)
-return nothing
-
