@@ -59,11 +59,11 @@ for (k, v) in _revcompdata
 end
 
 function print_buff(outio, bb)
-    b = bb.v
-    isempty(b) && return
+    b = resize!(bb.v, length(bb))
+    l = length(b)
+    length(b) == 0 && return
 
     br = reverse!(b)
-    l = length(br)
     for i = 1:60:l
         if i+59 > l
             write(outio, @view br[i:end])
@@ -95,6 +95,4 @@ function perf_revcomp(io=stdin, outio = stdout)
     end
 end
 
-#perf_revcomp()
-#perf_revcomp(open("revcomp-input-bench.txt"), IOBuffer())
-perf_revcomp(open("revcomp-input-bench.txt"), IOBuffer())#perf_revcomp(open("revcomp-input.txt"))
+perf_revcomp()
