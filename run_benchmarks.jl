@@ -2,7 +2,7 @@ using DeepDiffs
 using TimerOutputs
 
 verify = "verify" in ARGS
-num_threads = 8
+num_threads = 4
 
 struct Benchmark
     name::String
