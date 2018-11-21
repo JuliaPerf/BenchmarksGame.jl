@@ -4,7 +4,7 @@
 # contributed by Jarret Revels
 # based on Mario Pernici Python's program
 
-using Printf
+print_line(ns, i) = println(rpad(string(ns), 10), '\t', ':', i)
 
 function pidigits(N::Int)
     i = k = ns = 0
@@ -24,13 +24,14 @@ function pidigits(N::Int)
             t,u = divrem(n*3 +a, d)
             u += n
             if d > u
+                if i >= N
+                    print_line(ns, i)
+                    return ns
+                end
                 ns = ns*10 + t
                 i += 1
                 if mod(i,10) == 0
-                    @printf("%010d\t:%d\n", ns, i)
-                    if i >= N
-                        return ns
-                    end
+                    print_line(ns, i)
                     ns = 0
                 end
                 a -= d*t
@@ -42,6 +43,8 @@ function pidigits(N::Int)
     end
 end
 
-n = parse(Int,ARGS[1])
+#n = parse(Int,ARGS[1])
+n = 27
 pidigits(n)
+return nothing
 
