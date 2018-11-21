@@ -16,12 +16,12 @@ const BENCHMARKS = [
     Benchmark("binarytrees", 21, 10),
     Benchmark("fannkuchredux", 12, 7),
     Benchmark("fasta", 25000000, 1000),
-    Benchmark("knucleotide", "fasta.txt", "knucleotide-input.txt", true),
+    Benchmark("knucleotide", "fasta.txt", "knucleotide/knucleotide-input.txt", true),
     Benchmark("mandelbrot", 16000, 200),
     Benchmark("nbody", 50000000, 1000),
     Benchmark("pidigits", 10000, 27),
-    Benchmark("regexredux", 5000000, "regexredux-input.txt"),
-    Benchmark("revcomp", "fasta.txt", "revcomp-input.txt", true),
+    Benchmark("regexredux", 5000000, "regexredux/regexredux-input.txt"),
+    Benchmark("revcomp", "fasta.txt", "revcomp/revcomp-input.txt", true),
     Benchmark("spectralnorm", 5500, 100),
 ]
 
