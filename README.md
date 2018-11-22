@@ -44,4 +44,5 @@ to verify correctness add an argument `verify`
    spectralnorm-fast.jl         1    1.16s  0.31%
  pidigits                       1    1.59s  0.43%
    pidigits.jl                  1    1.59s  0.43%
+ ────────────────────────────────────────────────
  ```
