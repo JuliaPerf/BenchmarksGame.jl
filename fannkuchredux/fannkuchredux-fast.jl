@@ -1,43 +1,37 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 
-# based on Oleg Mazurov's Java Implementation
+# based on Oleg Mazurov's Java Implementation and Jeremy Zerfas' C implementation
 # transliterated by Hamza Yusuf Çakır
 
-global const nchunks = 150
+global const preferred_num_blocks = 12
 
 struct Fannkuch
     n::Int64
-    chunksz::Int32
-    ntasks::Int32
+    blocksz::Int64
     maxflips::Vector{Int32}
     chksums::Vector{Int32}
-    taskId::Threads.Atomic{Int}
 
-    function Fannkuch(n)
+    function Fannkuch(n, nthreads)
         nfact = factorial(n)
 
-        chunksz = (nfact + nchunks - 1) ÷ nchunks
-        ntasks = (nfact + chunksz - 1) ÷ chunksz
+        blocksz = nfact ÷ (nfact < preferred_num_blocks ? 1 : preferred_num_blocks)
+        maxflips = zeros(Int32,nthreads)
+        chksums = zeros(Int32, nthreads)
 
-        maxflips = Vector{Int32}(undef, ntasks)
-        chksums = Vector{Int32}(undef, ntasks)
-
-        taskId = Threads.Atomic{Int}(0)
-
-        new(n, chunksz, ntasks, maxflips, chksums, taskId)
+        new(n, blocksz, maxflips, chksums)
     end
 end
 
 struct Perm
-    p::Vector{Int32}
-    pp::Vector{Int32}
-    count::Vector{Int32}
+    p::Vector{Int8}
+    pp::Vector{Int8}
+    count::Vector{Int8}
 
     function Perm(n)
-        p = zeros(Int32, n)
-        pp = zeros(Int32, n)
-        count = zeros(Int32, n)
+        p = zeros(Int8, n)
+        pp = zeros(Int8, n)
+        count = zeros(Int8, n)
 
         new(p, pp, count)
     end
@@ -47,21 +41,21 @@ Base.@propagate_inbounds function first_permutation(perm::Perm, idx)
     p = perm.p
     pp = perm.pp
 
-    for i = Int32(1):Int32(length(p))
+    for i = 2:length(p)
         p[i] = i - 1
     end
 
-    for i = Int32(length(p)):Int32(-1):Int32(2)
+    for i = length(p):-1:2
         ifact = factorial(i-1)
         d = idx ÷ ifact
         perm.count[i] = d
         idx = idx % ifact
 
-        for j = Int32(1):i
+        for j = 1:i
             pp[j] = p[j]
         end
 
-        for j = Int32(1):i
+        for j = 1:i
             p[j] = j+d <= i ? pp[j+d] : pp[j+d-i]
         end
     end
@@ -76,7 +70,7 @@ Base.@propagate_inbounds function next_permutation(perm::Perm)
     p[1]  = first
 
     i = 2
-    while (count[i] += 1) > i - 1
+    while (count[i] + 1) >= i
         count[i] = 0
         i += 1
 
@@ -89,46 +83,49 @@ Base.@propagate_inbounds function next_permutation(perm::Perm)
         p[i] = first
         first = next
     end
+    count[i] += 1
 end
 
-Base.@propagate_inbounds function count_flips(perm::Perm)
+Base.@propagate_inbounds @inline function count_flips(perm::Perm)
     p = perm.p
     pp = perm.pp
 
     flips = 1
-    first = p[1]
+    first = p[1] + 1
+    if p[first] != 0
 
-    if p[first + 1] != 0
-        pp .= p
+        copyto!(pp, 2, p, 2, length(p) - 1)
 
-        while true # do..while(pp[first+1] != 0)
+        while true
             flips += 1
 
-            lo = 1; hi = first - 1
-            while lo < hi
-                t = pp[lo+1]
-                pp[lo+1] = pp[hi+1]
-                pp[hi+1] = t
-                lo += 1
-                hi -= 1
+            new_first = pp[first]
+            pp[first] = first - 1
+
+            if first > 3
+                lo = 2; hi = first-1
+
+                # see the note in Jeremy Zerfas' C implementation
+                for k = 1:15
+                    t = pp[lo]
+                    pp[lo] = pp[hi]
+                    pp[hi] = t
+
+                    !((lo + 3) <= hi) && break
+                    lo += 1
+                    hi -= 1
+                end
             end
 
-            t = pp[first+1]
-            pp[first+1] = first
-            first = t
-
-            (pp[first+1] == 0) && break
+            first = new_first + 1
+            pp[first] == 0 && break
         end
     end
 
     return flips
 end
 
-Base.@propagate_inbounds function run_task(f::Fannkuch, perm::Perm, task)
-    idxmin = task * f.chunksz
-    idxmax = min(factorial(f.n), idxmin + f.chunksz)
-
-    first_permutation(perm, idxmin)
+Base.@propagate_inbounds function run_task(f::Fannkuch, perm::Perm, idxmin, idxmax)
 
     maxflips = 1
     chksum = 0
@@ -141,42 +138,40 @@ Base.@propagate_inbounds function run_task(f::Fannkuch, perm::Perm, task)
                 maxflips = max(maxflips, flips)
                 chksum += iseven(i) ? flips : -flips
             end
-
-            i += 1
             if i == idxmax
                 break
             end
-
+            i += 1
             next_permutation(perm)
         end
     end
-
-    f.maxflips[task+1] = maxflips
-    f.chksums[task+1] = chksum
+    id = Threads.threadid()
+    f.maxflips[id] = max(f.maxflips[id], maxflips)
+    f.chksums[id] += chksum
 end
 
 function runf(f::Fannkuch)
-    perm = Perm(f.n)
+    factn = factorial(f.n)
 
-    taskId = f.taskId # atomic
-    while (task = Threads.atomic_add!(taskId, 1)) < f.ntasks
-        @inbounds run_task(f, perm, task)
+    Threads.@threads for idxmin=0:f.blocksz:factn-1
+        perm = Perm(f.n)
+        first_permutation(perm, idxmin)
+        idxmax = idxmin + f.blocksz - 1
+        @inbounds run_task(f, perm, idxmin, idxmax)
     end
 end
 
-function fannkuchredux(n::Int)
-    f = Fannkuch(n)
+function fannkuchredux(n)
+    f = Fannkuch(n,Threads.nthreads())
 
-    Threads.@threads for i = 1:Threads.nthreads()
-        runf(f)
-    end
+    runf(f)
 
+    # reduce results
     chk = sum(f.chksums)
     res = maximum(f.maxflips)
 
-    return (chk, res)
+    println(chk, "\nPfannkuchen(", n, ") = ", res)
 end
 
 n = parse(Int, ARGS[1])
-chk, res = fannkuchredux(n)
-println(chk, "\nPfannkuchen(", n, ") = ", res)
+@time fannkuchredux(n)
