@@ -22,8 +22,6 @@ Vec3(x, y, z) = Vec3((x,y,z,0.0))
 Base.:/(v::Vec3, n::Number) = Vec3(1/n .* v.x)
 Base.:*(v::Vec3, n::Number) = Vec3(n .* v.x)
 Base.:-(v1::Vec3, v2::Vec3) = Vec3(v1.x .- v2.x)
-Base.:-(v1::Vec3) = Vec3((-).(v1.x))
-
 Base.:+(v1::Vec3, v2::Vec3) = Vec3(v1.x .+ v2.x)
 # Todo, prettify
 squarednorm(v1::Vec3) = v1.x[1]^2 + v1.x[2]^2 + v1.x[3]^2
