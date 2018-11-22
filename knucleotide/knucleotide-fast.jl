@@ -26,16 +26,16 @@ NucleotideLUT['T'%UInt8] = 3
 length_bit(l) = (UInt64(1) << 2l)
 
 # Should be called after the nucelotides are added!
-set_length(kn::KNucleotides, l::Integer) = KNucleotides(kn.i | length_bit(l))
-add_nucleotide(kn::KNucleotides, c::UInt8) = KNucleotides(@inbounds (kn.i << 2) | NucleotideLUT[c])
+@inline set_length(kn::KNucleotides, l::Integer) = KNucleotides(kn.i | length_bit(l))
+@inline add_nucleotide(kn::KNucleotides, c::UInt8) = KNucleotides(@inbounds (kn.i << 2) | NucleotideLUT[c])
 Base.length(kn::KNucleotides) = (64 - leading_zeros(kn.i) - 1) ÷ 2
-function KNucleotides(str::String, n=length(str), offset=0)
+@inline function KNucleotides(str::String, ::Val{N}=Val(length(str)), offset=0) where {N}
     # @assert isascii(str) && n <= 29
     kn = KNucleotides()
-    @inbounds for i in 1:n
+    @inbounds for i in 1:N
         kn = add_nucleotide(kn, codeunit(str, i + offset))
     end
-    kn = set_length(kn, n)
+    kn = set_length(kn, N)
     return kn
 end
 
@@ -57,9 +57,9 @@ function Base.string(kn::KNucleotides)
     end
 end
 
-function count_data(data::String, n::Int)
+function count_data(data::String, n::Val{N}) where {N}
     counts = Dict{KNucleotides, Int}()
-    top = length(data) - n
+    top = length(data) - N
     @inbounds for offset = 0:top
         kn = KNucleotides(data, n, offset)
         token = Base.ht_keyindex2!(counts, kn)
@@ -74,7 +74,7 @@ end
 
 function count_one(data::String, s::String)
     k = KNucleotides(s)
-    d = count_data(data, length(s))
+    d = count_data(data, Val(length(s)))
     return haskey(d, k) ? d[k] : 0
 end
 
@@ -112,7 +112,7 @@ function print_knucs(a::Array{KNuc, 1})
     println()
 end
 
-do_work(str::String, i::Int) = sorted_array(count_data(str, i))
+do_work(str::String, i::Int) = sorted_array(count_data(str, Val(i)))
 do_work(str::String, i::String) = count_one(str, i)
 
 function perf_k_nucleotide(io = stdin)
