@@ -25,6 +25,7 @@ Base.:-(v1::Vec3, v2::Vec3) = Vec3(v1.x .- v2.x)
 Base.:+(v1::Vec3, v2::Vec3) = Vec3(v1.x .+ v2.x)
 # Todo, prettify
 squarednorm(v1::Vec3) = v1.x[1]^2 + v1.x[2]^2 + v1.x[3]^2
+Base.muladd(x::Vec3, y::Number, z::Vec3) = Vec3(muladd.(x.x, y, z.x))
 
 # A heavenly body in the system
 mutable struct Body
@@ -46,31 +47,35 @@ function init_sun!(bodies::Vector{Body})
 end
 
 function advance(bodies::Vector{Body}, dt::Number)
-    for i = 1:length(bodies)
-        @inbounds for j = i+1:length(bodies)
-            delta = bodies[i].pos - bodies[j].pos
+    @inbounds for i = 1:length(bodies)
+        bi = bodies[i]
+        for j = i+1:length(bodies)
+            bj = bodies[j]
+            delta = bi.pos - bj.pos
             dsq = squarednorm(delta)
             distance = sqrt(dsq)
             mag = dt / (dsq * distance)
-
-            bodies[i].v -= delta * (bodies[j].mass * mag)
-            bodies[j].v += delta * (bodies[i].mass * mag)
+            bi.v = muladd(delta, -(bj.mass * mag), bi.v)
+            bj.v = muladd(delta, (bi.mass * mag), bj.v)
         end
     end
 
     for b in bodies
-        b.pos += b.v * dt
+        b.pos = muladd(b.v, dt, b.pos)
     end
 end
 
 function energy(bodies::Vector{Body})
     e = 0.0
-    for i = 1:length(bodies)
-        e += 0.5 * bodies[i].mass * squarednorm(bodies[i].v)
-        @inbounds for j = i+1:length(bodies)
-            delta = bodies[i].pos - bodies[j].pos
+    @inbounds for i = 1:length(bodies)
+        bi = bodies[i]
+        e += 0.5 * bi.mass * squarednorm(bi.v)
+        for j = i+1:length(bodies)
+            bj = bodies[j]
+            delta = bi.pos - bj.pos
             distance = sqrt(squarednorm(delta))
-            e -= (bodies[i].mass * bodies[j].mass) / distance
+            dinv = 1.0 / distance
+            e = muladd((bi.mass * bj.mass), -dinv, e)
         end
     end
     return e
