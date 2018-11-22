@@ -29,15 +29,18 @@ function threads_inner(pool, d, min_depth, max_depth)
         c += check(pool, make(pool, d))
         empty!(pool)
     end
-    @sprintf("%i\t trees of depth %i\t check: %i\n", niter, d, c)
+    return (niter, d, c)
 end
-function loop_depths(io, d, min_depth, max_depth)
-    output = ntuple(x-> String[], Threads.nthreads())
+
+function loop_depths(io, d, min_depth, max_depth, ::Val{N}) where N
+    threadstore = ntuple(x-> NTuple{3, Int}[], N)
     Threads.@threads for d in min_depth:2:max_depth
         pool = Node[]
-        push!(output[Threads.threadid()], threads_inner(pool, d, min_depth, max_depth))
+        push!(threadstore[Threads.threadid()], threads_inner(pool, d, min_depth, max_depth))
     end
-    foreach(s->foreach(x->print(io, x), s), output)
+    for results in threadstore, result in results
+        @printf(io, "%i\t trees of depth %i\t check: %i\n", result...)
+    end
 end
 function perf_binary_trees(io, N::Int=10)
     min_depth = 4
@@ -50,8 +53,8 @@ function perf_binary_trees(io, N::Int=10)
 
     long_lived_tree = make(pool, max_depth)
 
-    loop_depths(io, min_depth, min_depth, max_depth)
+    loop_depths(io, min_depth, min_depth, max_depth, Val(Threads.nthreads()))
     @printf(io, "long lived tree of depth %i\t check: %i\n", max_depth, check(pool, long_lived_tree))
 end
-n = parse(Int, ARGS[1])
-perf_binary_trees(stdout, n)
+
+perf_binary_trees(stdout, parse(Int, ARGS[1]))
