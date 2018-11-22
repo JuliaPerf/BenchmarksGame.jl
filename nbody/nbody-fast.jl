@@ -13,10 +13,12 @@ using LinearAlgebra
 const solar_mass = 4 * pi * pi
 const days_per_year = 365.24
 
+# Use a 4-tuple here to get better SIMD instructions.
+# This is a space-time tradeoff, but this benchmark is well within L1 cache limits.
 struct Vec3
-    x::NTuple{3, Float64}
+    x::NTuple{4, Float64}
 end
-Vec3(x, y, z) = Vec3((x,y,z))
+Vec3(x, y, z) = Vec3((x,y,z,0.0))
 Base.:/(v::Vec3, n::Number) = Vec3(1/n .* v.x)
 Base.:*(v::Vec3, n::Number) = Vec3(n .* v.x)
 Base.:-(v1::Vec3, v2::Vec3) = Vec3(v1.x .- v2.x)
@@ -36,7 +38,7 @@ function offset_momentum!(b::Body, p::Vec3)
 end
 
 function init_sun!(bodies::Vector{Body})
-    p = Vec3((0.0, 0.0, 0.0))
+    p = Vec3(0.0, 0.0, 0.0)
     for b in bodies
         p += b.v * b.mass
     end
