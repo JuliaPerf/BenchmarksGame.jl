@@ -13,6 +13,8 @@ using LinearAlgebra
 const solar_mass = 4 * pi * pi
 const days_per_year = 365.24
 
+# Use a 4-tuple here to get better SIMD instructions.
+# This is a space-time tradeoff, but this benchmark is well within L1 cache limits.
 struct Vec3
     x::NTuple{4, Float64}
 end
