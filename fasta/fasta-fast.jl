@@ -1,7 +1,7 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 #
-# contributed by Jarret Revels and Alex Arslan
+# contributed by Jarret Revels, Alex Arslan and Kristoffer Carlsson
 
 const line_width = 60
 
