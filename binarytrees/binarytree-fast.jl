@@ -1,59 +1,60 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 
-# contributed by Jarret Revels and Alex Arslan
-# based on an OCaml program
-# *reset*
+# contributed by Simon Danisch
+# based on the [C++ implementation](https://benchmarksgame-team.pages.debian.net/benchmarksgame/program/binarytrees-gpp-9.html)
 
 using Printf
-
-abstract type BTree end
-
-mutable struct Node <: BTree
-    left::Union{Nothing, Node}
-    right::Union{Nothing, Node}
+struct Node
+    left::Int
+    right::Int
+end
+function alloc!(pool, left, right)
+    push!(pool, Node(left, right))
+    return length(pool)
+end
+function make(pool, d)
+    d == 0 && return 0
+    alloc!(pool, make(pool, d - 1), make(pool, d - 1))
+end
+check(pool, t::Node) = 1 + check(pool, t.left) + check(pool, t.right)
+function check(pool, node::Int)
+    node == 0 && return 1
+    @inbounds return check(pool, pool[node])
+end
+function threads_inner(pool, d, min_depth, max_depth)
+    niter = 1 << (max_depth - d + min_depth)
+    c = 0
+    for j = 1:niter
+        c += check(pool, make(pool, d))
+        empty!(pool)
+    end
+    return (niter, d, c)
 end
 
-function make(d)
-    if d == 0
-        Node(nothing, nothing)
-    else
-        Node(make(d-1), make(d-1))
+function loop_depths(io, d, min_depth, max_depth, ::Val{N}) where N
+    threadstore = ntuple(x-> NTuple{3, Int}[], N)
+    Threads.@threads for d in min_depth:2:max_depth
+        pool = Node[]
+        push!(threadstore[Threads.threadid()], threads_inner(pool, d, min_depth, max_depth))
+    end
+    for results in threadstore, result in results
+        @printf(io, "%i\t trees of depth %i\t check: %i\n", result...)
     end
 end
-
-check(t::Nothing) = 0
-check(t::Node) = 1 + check(t.left) + check(t.right)
-
-function loop_depths(d, min_depth, max_depth)
-    for i = 0:div(max_depth - d, 2)
-        niter = 1 << (max_depth - d + min_depth)
-        c = 0
-        for j = 1:niter
-            c += check(make(d))
-        end
-        @printf("%i\t trees of depth %i\t check: %i\n", niter, d, c)
-        d += 2
-    end
-end
-
-function perf_binary_trees(N::Int=10)
+function perf_binary_trees(io, N::Int=10)
     min_depth = 4
     max_depth = N
     stretch_depth = max_depth + 1
-
+    pool = Node[]
     # create and check stretch tree
-    let c = check(make(stretch_depth))
-        @printf("stretch tree of depth %i\t check: %i\n", stretch_depth, c)
-    end
+    c = check(pool, make(pool, stretch_depth))
+    @printf(io, "stretch tree of depth %i\t check: %i\n", stretch_depth, c)
 
-    long_lived_tree = make(max_depth)
+    long_lived_tree = make(pool, max_depth)
 
-    loop_depths(min_depth, min_depth, max_depth)
-    @printf("long lived tree of depth %i\t check: %i\n", max_depth, check(long_lived_tree))
-
+    loop_depths(io, min_depth, min_depth, max_depth, Val(Threads.nthreads()))
+    @printf(io, "long lived tree of depth %i\t check: %i\n", max_depth, check(pool, long_lived_tree))
 end
 
-n = parse(Int,ARGS[1])
-perf_binary_trees(n)
-
+perf_binary_trees(stdout, parse(Int, ARGS[1]))
