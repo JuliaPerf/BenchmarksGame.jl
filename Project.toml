@@ -1,3 +1,7 @@
+name = "BenchmarksGame"
+uuid = "73f2fa52-d59b-5f29-b738-f66cd1162a20"
+license = "MIT"
+
 [deps]
 DeepDiffs = "ab62b9b5-e342-54a8-a765-a90f495de1a6"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
