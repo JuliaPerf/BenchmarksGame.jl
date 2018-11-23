@@ -126,7 +126,3 @@ end
 
 n = parse(Int,ARGS[1])
 perf_fasta(n)
-#n = 50
-#open("foo", "w") do io
-#    perf_fasta(io, n)
-#end
