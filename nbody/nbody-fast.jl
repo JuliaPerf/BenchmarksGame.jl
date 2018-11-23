@@ -10,7 +10,7 @@ using Printf
 using LinearAlgebra
 
 # Constants
-const solar_mass = 4π^2  # same as: const solar_mass = 4 * pi * pi
+const solar_mass = 4π^2
 const days_per_year = 365.24
 
 # Use a 4-tuple here to get better SIMD instructions.
