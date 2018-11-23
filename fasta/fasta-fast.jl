@@ -1,7 +1,38 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 #
-# contributed by Jarret Revels, Alex Arslan and Kristoffer Carlsson
+# contributed by Jarret Revels and Alex Arslan
+
+mutable struct PushVector{T, A<:AbstractVector{T}} <: AbstractVector{T}
+    v::A
+    l::Int
+end
+
+PushVector{T}() where {T} = PushVector(Vector{T}(undef, 0), 0)
+
+Base.IndexStyle(::Type{PushVector{<:Any, A}}) where {A} = IndexStyle(A)
+Base.length(v::PushVector) = v.l
+Base.size(v::PushVector) = (v.l,)
+@inline function Base.getindex(v::PushVector, i)
+    @boundscheck checkbounds(v, i)
+    @inbounds v.v[i]
+end
+
+function Base.push!(v::PushVector, i)
+    v.l += 1
+    if v.l > length(v.v)
+        resize!(v.v, v.l * 2)
+    end
+    v.v[v.l] = i
+    return v
+end
+
+function Base.write(v::PushVector{UInt8}, s::String)
+    for c in codeunits(s)
+        push!(v, c)
+    end
+end
+Base.write(v::PushVector{UInt8}, c::UInt8) = push!(v, c)
 
 const line_width = 60
 
@@ -26,25 +57,26 @@ const IC   = Int32(29573)
 const state = Ref(Int32(42))
 gen_random() = (state[] = ((state[] * IA) + IC) % IM)
 
-function repeat_fasta(src, n)
+function repeat_fasta(io, src, n)
     k = length(src)
     s = string(src, src, src[1:(n % k)])
     I = Iterators.cycle(src)
+    # I = Iterators.cycle(codeunits(src))
     col = 1
     count = 1
     c, state = iterate(I)
-    print(c)
+    write(io, c % UInt8)
     while count < n
         col += 1
         c, state = iterate(I, state)
-        print(c)
+        write(io, c % UInt8)
         if col == line_width
-            println()
+            write(io, '\n' % UInt8)
             col = 0
         end
         count += 1
     end
-    println()
+    write(io, '\n' % UInt8)
     return
 end
 
@@ -65,32 +97,32 @@ function choose_char(cs)
     return b
 end
 
-function random_fasta(symb, pr, n)
+function random_fasta(io, symb, pr, n)
     cs = cumsum(pr)
-    line = Vector{UInt8}(undef, line_width)
     k = n
     while k > 0
         m = min(k, line_width)
-        resize!(line, m)
-        for i = 1:m
-            line[i] = symb[choose_char(cs)]
+        @inbounds for i = 1:m
+            write(io, symb[choose_char(cs)])
         end
-        println(String(copy(line)))
+        write(io, '\n'%UInt8)
         k -= line_width
     end
     return
 end
 
-function perf_fasta(n=25000000)
-  println(">ONE Homo sapiens alu")
-  repeat_fasta(alu, 2n)
+function perf_fasta(_n=25000000, _io = stdout)
+  io = PushVector{UInt8}()
+  write(io, ">ONE Homo sapiens alu\n")
+  repeat_fasta(io, alu, 2n)
 
-  println(">TWO IUB ambiguity codes")
-  random_fasta(iub1, iub2, 3n)
-  println(">THREE Homo sapiens frequency")
-  random_fasta(homosapiens1, homosapiens2, 5n)
+  write(io, ">TWO IUB ambiguity codes\n")
+  random_fasta(io, iub1, iub2, 3n)
+  write(io, ">THREE Homo sapiens frequency\n")
+  random_fasta(io, homosapiens1, homosapiens2, 5n)
+  z = resize!(io.v, length(io))
+  write(_io, z)
 end
 
 n = parse(Int,ARGS[1])
 perf_fasta(n)
-
