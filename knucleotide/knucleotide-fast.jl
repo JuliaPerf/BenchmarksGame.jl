@@ -14,6 +14,10 @@ NucleotideLUT['A'%UInt8] = 0
 NucleotideLUT['C'%UInt8] = 1
 NucleotideLUT['G'%UInt8] = 2
 NucleotideLUT['T'%UInt8] = 3
+NucleotideLUT['a'%UInt8] = 0
+NucleotideLUT['c'%UInt8] = 1
+NucleotideLUT['g'%UInt8] = 2
+NucleotideLUT['t'%UInt8] = 3
 
 struct KNucleotides{L, T}
     i::T
@@ -41,7 +45,7 @@ end
 @inline function shift(kn::KNucleotides{L, T}, c::UInt8) where {L, T}
     i = kn.i
     i &= (~(3 << 2(L-1)) % T)
-    KNucleotides{L, T}((i << 2) | @inbounds NucleotideLUT[Int(c)])
+    KNucleotides{L, T}((i << T(2)) | @inbounds NucleotideLUT[c])
 end
 
 function Base.string(kn::KNucleotides{L}) where {L}
@@ -63,7 +67,7 @@ function count_data(data::String, ::Type{KNucleotides{L, T}}) where {L, T}
     counts = Dict{KNucleotides{L, T}, Int}()
     kn = KNucleotides{L, T}(data)
     counts[kn] = 1
-    @inbounds for offset = (L+1):length(data)
+    @inbounds for offset = (L+1):sizeof(data)
         c = codeunit(data, offset)
         kn = shift(kn, c)
         token = Base.ht_keyindex2!(counts, kn)
@@ -129,12 +133,11 @@ function perf_k_nucleotide(io = stdin)
         end
     end
     data = read(io, String)
-    str = uppercase(data)
-    str = filter(!isequal('\n'), str)
+    str = filter(!isequal('\n'), data)
 
     vs = [1, 2, "GGT", "GGTA", "GGTATT", "GGTATTTTAATT", "GGTATTTTAATTTATAGT"]
     results = Vector{Any}(undef, length(vs))
-    Threads.@threads for i in 1:length(vs)
+    for i in 1:length(vs)
         results[i] = do_work(str, vs[i])
     end
 
