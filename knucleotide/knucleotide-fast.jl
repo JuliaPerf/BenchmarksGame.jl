@@ -7,8 +7,12 @@
 #
 # Bit-twiddle optimizations added by Kristoffer Carlsson
 
+using Distributed
 using Printf
 
+addprocs(4)
+
+@everywhere begin
 const NucleotideLUT = zeros(UInt8, 256)
 NucleotideLUT['A'%UInt8] = 0
 NucleotideLUT['C'%UInt8] = 1
@@ -110,6 +114,11 @@ function sorted_array(m)
     sort!(kn)
 end
 
+do_work(str::String, i::Int) = sorted_array(count_data(str, KNucleotides{i,determine_inttype(i)}))
+do_work(str::String, i::String) = count_one(str, i)
+
+end # @everywhere
+
 function print_knucs(a::Array{KNuc, 1})
     sum = 0
     for kn in a
@@ -120,9 +129,6 @@ function print_knucs(a::Array{KNuc, 1})
     end
     println()
 end
-
-@noinline do_work(str::String, i::Int) = sorted_array(count_data(str, KNucleotides{i,determine_inttype(i)}))
-@noinline do_work(str::String, i::String) = count_one(str, i)
 
 function perf_k_nucleotide(io = stdin)
     three = ">THREE "
@@ -137,8 +143,14 @@ function perf_k_nucleotide(io = stdin)
 
     vs = [1, 2, "GGT", "GGTA", "GGTATT", "GGTATTTTAATT", "GGTATTTTAATTTATAGT"]
     results = Vector{Any}(undef, length(vs))
-    for i in 1:length(vs)
-        results[i] = do_work(str, vs[i])
+    order = collect(enumerate(vs))
+
+    @sync for w in workers()
+        @async while !isempty(order)
+            v = pop!(order)
+            r = remotecall_fetch(do_work, w, str, v[2])
+            results[v[1]] = r
+        end
     end
 
     for (v, result) in zip(vs, results)
@@ -152,4 +164,3 @@ function perf_k_nucleotide(io = stdin)
 end
 
 perf_k_nucleotide()
-#perf_k_nucleotide(open("knucleotide-input.txt"))
