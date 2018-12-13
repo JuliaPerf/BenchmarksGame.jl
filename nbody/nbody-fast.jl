@@ -9,119 +9,122 @@ module NBody
 using Printf
 using LinearAlgebra
 
+# Utility
+@inline unordered_pairs(x, y) = ((x, y),)
+@inline unordered_pairs(x, y, tail...) = ((x, y), unordered_pairs(x, tail...)..., unordered_pairs(y, tail...)...)
+
+@inline _mapreduce(f, op, head) = f(head)
+@inline _mapreduce(f, op, head, tail...) = op(f(head), _mapreduce(f, op, tail...))
+
+@inline _foreach(f, head) = (f(head); nothing)
+@inline _foreach(f, head, tail...) = (f(head); _foreach(f, tail...); nothing)
+
 # Constants
 const solar_mass = 4π^2
 const days_per_year = 365.24
 
-# Use a 4-tuple here to get better SIMD instructions.
-# This is a space-time tradeoff, but this benchmark is well within L1 cache limits.
 struct Vec3
-    x::NTuple{4, Float64}
+    x::NTuple{3, Float64}
 end
-Vec3(x, y, z) = Vec3((x,y,z,0.0))
-Base.:/(v::Vec3, n::Number) = Vec3(1/n .* v.x)
-Base.:*(v::Vec3, n::Number) = Vec3(n .* v.x)
-Base.:-(v1::Vec3, v2::Vec3) = Vec3(v1.x .- v2.x)
-Base.:+(v1::Vec3, v2::Vec3) = Vec3(v1.x .+ v2.x)
-# Todo, prettify
-squarednorm(v1::Vec3) = v1.x[1]^2 + v1.x[2]^2 + v1.x[3]^2
-Base.muladd(x::Vec3, y::Number, z::Vec3) = Vec3(muladd.(x.x, y, z.x))
+@inline Vec3(x, y, z) = Vec3((x,y,z))
+@inline Base.:/(v::Vec3, n::Number) = Vec3(1/n .* v.x)
+@inline Base.:*(v::Vec3, n::Number) = Vec3(n .* v.x)
+@inline Base.:-(v1::Vec3, v2::Vec3) = Vec3(v1.x .- v2.x)
+@inline Base.:+(v1::Vec3, v2::Vec3) = Vec3(v1.x .+ v2.x)
+@inline squarednorm(v1::Vec3) = v1.x[1]^2 + v1.x[2]^2 + v1.x[3]^2
+@inline Base.muladd(x::Vec3, y::Number, z::Vec3) = Vec3(muladd.(x.x, y, z.x))
 
 # A heavenly body in the system
-mutable struct Body
+mutable struct Body{mass}
     pos::Vec3
-    v::Vec3
-    mass::Float64
+    vel::Vec3
 end
 
-function offset_momentum!(b::Body, p::Vec3)
-    b.v -= p / solar_mass
+@inline mass(::Body{m}) where {m} = m
+@inline momentum(body::Body) = body.vel * mass(body)
+@inline kinetic_energy(body::Body) = (mass(body) / 2) * squarednorm(body.vel)
+
+@inline function potential_energy(bi::Body, bj::Body)
+    sqdistance = squarednorm(bi.pos - bj.pos)
+    -(mass(bi) * mass(bj)) / sqrt(sqdistance)
 end
 
-function init_sun!(bodies::Vector{Body})
-    p = Vec3(0.0, 0.0, 0.0)
-    for b in bodies
-        p += b.v * b.mass
+@inline potential_energy(bodies::Tuple{<:Body, <:Body}) = potential_energy(bodies...)
+
+@inline function init_sun!(bodies)
+    p = _mapreduce(momentum, +, bodies...)
+    bodies[1].vel -= p / solar_mass
+    nothing
+end
+
+
+@inline function advance(bodies, dt::Number)
+    _foreach(unordered_pairs(bodies...)...) do (bi, bj)
+        Base.@_inline_meta
+        delta = bi.pos - bj.pos
+        dsq = squarednorm(delta)
+        distance = sqrt(dsq)
+        mag = dt / (dsq * distance)
+        bi.vel = muladd(delta, -(mass(bj) * mag), bi.vel)
+        bj.vel = muladd(delta, (mass(bi) * mag), bj.vel)
+        nothing
     end
-    offset_momentum!(bodies[1], p)
+    _foreach(bodies...) do b
+        b.pos = muladd(b.vel, dt, b.pos)
+    end
+    return nothing
 end
 
-function advance(bodies::Vector{Body}, dt::Number)
-    @inbounds for i = 1:length(bodies)
-        bi = bodies[i]
-        for j = i+1:length(bodies)
-            bj = bodies[j]
-            delta = bi.pos - bj.pos
-            dsq = squarednorm(delta)
-            distance = sqrt(dsq)
-            mag = dt / (dsq * distance)
-            bi.v = muladd(delta, -(bj.mass * mag), bi.v)
-            bj.v = muladd(delta, (bi.mass * mag), bj.v)
-        end
-    end
-
-    for b in bodies
-        b.pos = muladd(b.v, dt, b.pos)
-    end
+@inline function energy(bodies)
+    kinetic = _mapreduce(kinetic_energy, +, bodies...)
+    potential = _mapreduce(potential_energy, +, unordered_pairs(bodies...)...)
+    return kinetic + potential
 end
-
-function energy(bodies::Vector{Body})
-    e = 0.0
-    @inbounds for i = 1:length(bodies)
-        bi = bodies[i]
-        e += 0.5 * bi.mass * squarednorm(bi.v)
-        for j = i+1:length(bodies)
-            bj = bodies[j]
-            delta = bi.pos - bj.pos
-            distance = sqrt(squarednorm(delta))
-            dinv = 1.0 / distance
-            e = muladd((bi.mass * bj.mass), -dinv, e)
-        end
-    end
-    return e
-end
-
 
 function perf_nbody(N::Int=1000)
-    jupiter = Body( Vec3(4.84143144246472090e+00,                  # pos[1] = x
+    jupiter = Body{9.54791938424326609e-04 * solar_mass}(          # mass
+                   Vec3(4.84143144246472090e+00,                   # pos[1] = x
                          -1.16032004402742839e+00,                 # pos[2] = y
                          -1.03622044471123109e-01),                # pos[3] = z
                    Vec3(1.66007664274403694e-03 * days_per_year,   # v[1] = vx
                         7.69901118419740425e-03 * days_per_year,   # v[2] = vy
                         -6.90460016972063023e-05 * days_per_year), # v[3] = vz
-                   9.54791938424326609e-04 * solar_mass)       # mass
+                   )
 
-    saturn = Body(Vec3(8.34336671824457987e+00,
+    saturn = Body{2.85885980666130812e-04 * solar_mass}(
+                  Vec3(8.34336671824457987e+00,
                        4.12479856412430479e+00,
                       -4.03523417114321381e-01),
                   Vec3(-2.76742510726862411e-03 * days_per_year,
                        4.99852801234917238e-03 * days_per_year,
                        2.30417297573763929e-05 * days_per_year),
-                  2.85885980666130812e-04 * solar_mass)
+                  )
 
-    uranus = Body(Vec3(1.28943695621391310e+01,
+    uranus = Body{4.36624404335156298e-05 * solar_mass}(
+                  Vec3(1.28943695621391310e+01,
                     -1.51111514016986312e+01,
                     -2.23307578892655734e-01),
                   Vec3(2.96460137564761618e-03 * days_per_year,
                        2.37847173959480950e-03 * days_per_year,
                        -2.96589568540237556e-05 * days_per_year),
-                  4.36624404335156298e-05 * solar_mass)
+                  )
 
-    neptune = Body(Vec3(1.53796971148509165e+01,
+    neptune = Body{5.15138902046611451e-05 * solar_mass}(
+                   Vec3(1.53796971148509165e+01,
                         -2.59193146099879641e+01,
                         1.79258772950371181e-01),
                    Vec3(2.68067772490389322e-03 * days_per_year,
                         1.62824170038242295e-03 * days_per_year,
                        -9.51592254519715870e-05 * days_per_year),
-                   5.15138902046611451e-05 * solar_mass)
+                   )
 
-    sun = Body(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 0.0, 0.0), solar_mass)
+    sun = Body{solar_mass}(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 0.0, 0.0))
 
-    bodies = [sun, jupiter, saturn, uranus, neptune]
+    bodies = (sun, jupiter, saturn, uranus, neptune)
 
     init_sun!(bodies)
     @printf("%.9f\n", energy(bodies))
-    for i = 1:N
+    for i in Base.OneTo(N)
         advance(bodies, 0.01)
     end
     @printf("%.9f\n", energy(bodies))
