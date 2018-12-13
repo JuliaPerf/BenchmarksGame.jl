@@ -9,9 +9,11 @@ module NBody
 using Printf
 using LinearAlgebra
 
-# Utility
+# Utilities
+@inline combinations(x, y::Tuple{}) = ()
+@inline combinations(x, y::Tuple) = ((x, y[1]), combinations(x, Base.tail(y))...)
 @inline unordered_pairs(x, y) = ((x, y),)
-@inline unordered_pairs(x, y, tail...) = ((x, y), unordered_pairs(x, tail...)..., unordered_pairs(y, tail...)...)
+@inline unordered_pairs(x, y, tail...) = (combinations(x, (y, tail...))..., unordered_pairs(y, tail...)...)
 
 @inline _mapreduce(f, op, head) = f(head)
 @inline _mapreduce(f, op, head, tail...) = op(f(head), _mapreduce(f, op, tail...))
@@ -27,12 +29,12 @@ struct Vec3
     x::NTuple{3, Float64}
 end
 @inline Vec3(x, y, z) = Vec3((x,y,z))
-@inline Base.:/(v::Vec3, n::Number) = Vec3(1/n .* v.x)
-@inline Base.:*(v::Vec3, n::Number) = Vec3(n .* v.x)
-@inline Base.:-(v1::Vec3, v2::Vec3) = Vec3(v1.x .- v2.x)
-@inline Base.:+(v1::Vec3, v2::Vec3) = Vec3(v1.x .+ v2.x)
-@inline squarednorm(v1::Vec3) = v1.x[1]^2 + v1.x[2]^2 + v1.x[3]^2
-@inline Base.muladd(x::Vec3, y::Number, z::Vec3) = Vec3(muladd.(x.x, y, z.x))
+@inline Base.:/(v::Vec3, n::Number) = @inbounds return Vec3(1/n .* v.x)
+@inline Base.:*(v::Vec3, n::Number) = @inbounds return Vec3(n .* v.x)
+@inline Base.:-(v1::Vec3, v2::Vec3) = @inbounds return Vec3(v1.x .- v2.x)
+@inline Base.:+(v1::Vec3, v2::Vec3) = @inbounds return Vec3(v1.x .+ v2.x)
+@inline squarednorm(v1::Vec3) = @inbounds return sum(v1.x .* v1.x)
+@inline Base.muladd(x::Vec3, y::Number, z::Vec3) = @inbounds return Vec3(muladd.(x.x, y, z.x))
 
 # A heavenly body in the system
 mutable struct Body{mass}
@@ -53,10 +55,9 @@ end
 
 @inline function init_sun!(bodies)
     p = _mapreduce(momentum, +, bodies...)
-    bodies[1].vel -= p / solar_mass
+    @inbounds bodies[1].vel -= p / solar_mass
     nothing
 end
-
 
 @inline function advance(bodies, dt::Number)
     _foreach(unordered_pairs(bodies...)...) do (bi, bj)
@@ -64,12 +65,13 @@ end
         delta = bi.pos - bj.pos
         dsq = squarednorm(delta)
         distance = sqrt(dsq)
-        mag = dt / (dsq * distance)
-        bi.vel = muladd(delta, -(mass(bj) * mag), bi.vel)
-        bj.vel = muladd(delta, (mass(bi) * mag), bj.vel)
+        mag = 1 / (dsq * distance)
+        bi.vel = muladd(delta, -(mass(bj) * dt) * mag, bi.vel)
+        bj.vel = muladd(delta,  (mass(bi) * dt) * mag, bj.vel)
         nothing
     end
     _foreach(bodies...) do b
+        Base.@_inline_meta
         b.pos = muladd(b.vel, dt, b.pos)
     end
     return nothing
@@ -128,9 +130,10 @@ function perf_nbody(N::Int=1000)
         advance(bodies, 0.01)
     end
     @printf("%.9f\n", energy(bodies))
+    return nothing
 end
 
 end # module
 
-n = parse(Int,ARGS[1])
+n = parse(Int, ARGS[1])
 NBody.perf_nbody(n)
