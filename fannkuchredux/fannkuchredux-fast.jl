@@ -4,7 +4,7 @@
 # based on Oleg Mazurov's Java Implementation and Jeremy Zerfas' C implementation
 # transliterated by Hamza Yusuf Çakır
 
-global const preferred_num_blocks = 12
+global const preferred_num_blocks = 24
 
 struct Fannkuch
     n::Int64
@@ -16,7 +16,7 @@ struct Fannkuch
         nfact = factorial(n)
 
         blocksz = nfact ÷ (nfact < preferred_num_blocks ? 1 : preferred_num_blocks)
-        maxflips = zeros(Int32,nthreads)
+        maxflips = zeros(Int32, nthreads)
         chksums = zeros(Int32, nthreads)
 
         new(n, blocksz, maxflips, chksums)
@@ -37,7 +37,7 @@ struct Perm
     end
 end
 
-Base.@propagate_inbounds function first_permutation(perm::Perm, idx)
+Base.@propagate_inbounds @inline function first_permutation(perm::Perm, idx)
     p = perm.p
     pp = perm.pp
 
@@ -61,7 +61,7 @@ Base.@propagate_inbounds function first_permutation(perm::Perm, idx)
     end
 end
 
-Base.@propagate_inbounds function next_permutation(perm::Perm)
+Base.@propagate_inbounds @inline function next_permutation(perm::Perm)
     p = perm.p
     count = perm.count
 
@@ -70,48 +70,49 @@ Base.@propagate_inbounds function next_permutation(perm::Perm)
     p[1]  = first
 
     i = 2
-    while (count[i] + 1) >= i
+    while count[i] >= i - 1
         count[i] = 0
-        i += 1
 
         next = p[1] = p[2]
 
-        for j = 1:i-1
+        for j = 1:i
             p[j] = p[j+1]
         end
 
+        i += 1
         p[i] = first
         first = next
     end
     count[i] += 1
+    nothing
 end
 
 Base.@propagate_inbounds @inline function count_flips(perm::Perm)
     p = perm.p
     pp = perm.pp
 
-    flips = 1
+    flips = Int32(1)
+
     first = p[1] + 1
+
     if p[first] != 0
 
-        copyto!(pp, 2, p, 2, length(p) - 1)
+        unsafe_copyto!(pp, 2, p, 2, length(p) - 1)
 
         while true
-            flips += 1
-
+            flips += one(flips)
             new_first = pp[first]
             pp[first] = first - 1
 
             if first > 3
-                lo = 2; hi = first-1
-
-                # see the note in Jeremy Zerfas' C implementation
-                for k = 1:15
+                lo = 2; hi = first - 1
+                # see the note in Jeremy Zerfas' C implementation for
+                # this loop
+                for k = 0:13
                     t = pp[lo]
                     pp[lo] = pp[hi]
                     pp[hi] = t
-
-                    !((lo + 3) <= hi) && break
+                    (hi < lo + 3) && break
                     lo += 1
                     hi -= 1
                 end
@@ -126,43 +127,40 @@ Base.@propagate_inbounds @inline function count_flips(perm::Perm)
 end
 
 Base.@propagate_inbounds function run_task(f::Fannkuch, perm::Perm, idxmin, idxmax)
+    maxflips = Int32(0)
+    chksum = Int32(0)
 
-    maxflips = 1
-    chksum = 0
-
-    let
-        i = idxmin
-        while true
-            if perm.p[1] != 0
-                flips = count_flips(perm)
-                maxflips = max(maxflips, flips)
-                chksum += iseven(i) ? flips : -flips
-            end
-            if i == idxmax
-                break
-            end
-            i += 1
-            next_permutation(perm)
+    i = idxmin
+    while true
+        if perm.p[1] != 0
+            flips = count_flips(perm)
+            maxflips = max(maxflips, flips)
+            chksum += iseven(i) ? flips : -flips
         end
+        i != idxmax || break
+        i += 1
+        next_permutation(perm)
     end
+
     id = Threads.threadid()
     f.maxflips[id] = max(f.maxflips[id], maxflips)
     f.chksums[id] += chksum
+    nothing
 end
 
 function runf(f::Fannkuch)
     factn = factorial(f.n)
 
-    Threads.@threads for idxmin=0:f.blocksz:factn-1
+    Threads.@threads for idxmin = 0:f.blocksz:factn-1
         perm = Perm(f.n)
-        first_permutation(perm, idxmin)
+        @inbounds first_permutation(perm, idxmin)
         idxmax = idxmin + f.blocksz - 1
         @inbounds run_task(f, perm, idxmin, idxmax)
     end
 end
 
 function fannkuchredux(n)
-    f = Fannkuch(n,Threads.nthreads())
+    f = Fannkuch(n, Threads.nthreads())
 
     runf(f)
 
