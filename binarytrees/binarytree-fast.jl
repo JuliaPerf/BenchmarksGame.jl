@@ -6,8 +6,8 @@
 
 using Printf
 struct Node
-    left::Int
-    right::Int
+    left::UInt32
+    right::UInt32
 end
 function alloc!(pool, left, right)
     push!(pool, Node(left, right))
@@ -18,7 +18,7 @@ function make(pool, d)
     alloc!(pool, make(pool, d - 1), make(pool, d - 1))
 end
 check(pool, t::Node) = 1 + check(pool, t.left) + check(pool, t.right)
-function check(pool, node::Int)
+function check(pool, node::Integer)
     node == 0 && return 1
     @inbounds return check(pool, pool[node])
 end
