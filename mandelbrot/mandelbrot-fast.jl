@@ -7,6 +7,14 @@ The Computer Language Benchmarks Game
 =#
 const zerov8 = ntuple(x-> 0f0, 8)
 
+@inline function step_mandel(Zr,Zi,Tr,Ti,cr,ci)
+    Zi = 2f0 .* Zr .* Zi .+ ci
+    Zr = Tr .- Ti .+ cr
+    Tr = Zr .* Zr
+    Ti = Zi .* Zi
+    return Zr,Zi,Tr,Ti
+end
+
 # Calculate mandelbrot set for one Vec8 into one byte
 Base.@propagate_inbounds function mand8(cr, ci)
     Zr = zerov8
@@ -14,23 +22,25 @@ Base.@propagate_inbounds function mand8(cr, ci)
     Tr = zerov8
     Ti = zerov8
     t = zerov8
-    for i in 0:49
-        Zi = 2f0 .* Zr .* Zi .+ ci
-        Zr = Tr .- Ti .+ cr
-        Tr = Zr .* Zr
-        Ti = Zi .* Zi
+    i = 0
+
+    while i<50
+        for _ in 1:5
+            Zr,Zi,Tr,Ti = step_mandel(Zr,Zi,Tr,Ti,cr,ci)
+            i += 1
+        end
         t = Tr .+ Ti
-        all(x-> x > 4f0, t) && break
+        all(x-> x > 4f0, t) && (return 0x00)
     end
-    byte = UInt8(0)
-    t[1] <= 4f0 && (byte |= 0x80)
-    t[2] <= 4f0 && (byte |= 0x40)
-    t[3] <= 4f0 && (byte |= 0x20)
-    t[4] <= 4f0 && (byte |= 0x10)
-    t[5] <= 4f0 && (byte |= 0x08)
-    t[6] <= 4f0 && (byte |= 0x04)
-    t[7] <= 4f0 && (byte |= 0x02)
-    t[8] <= 4f0 && (byte |= 0x01)
+    byte = 0xff
+    t[1] <= 4.0 || (byte &= 0b01111111)
+    t[2] <= 4.0 || (byte &= 0b10111111)
+    t[3] <= 4.0 || (byte &= 0b11011111)
+    t[4] <= 4.0 || (byte &= 0b11101111)
+    t[5] <= 4.0 || (byte &= 0b11110111)
+    t[6] <= 4.0 || (byte &= 0b11111011)
+    t[7] <= 4.0 || (byte &= 0b11111101)
+    t[8] <= 4.0 || (byte &= 0b11111110)
     return byte
 end
 
