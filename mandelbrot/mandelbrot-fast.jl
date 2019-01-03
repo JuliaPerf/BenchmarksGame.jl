@@ -7,6 +7,14 @@ The Computer Language Benchmarks Game
 =#
 const zerov8 = ntuple(x-> 0f0, 8)
 
+@inline function step_mandel(Zr,Zi,Tr,Ti,cr,ci)
+    Zi = 2f0 .* Zr .* Zi .+ ci
+    Zr = Tr .- Ti .+ cr
+    Tr = Zr .* Zr
+    Ti = Zi .* Zi
+    return Zr,Zi,Tr,Ti
+end
+
 # Calculate mandelbrot set for one Vec8 into one byte
 Base.@propagate_inbounds function mand8(cr, ci)
     Zr = zerov8
@@ -14,11 +22,13 @@ Base.@propagate_inbounds function mand8(cr, ci)
     Tr = zerov8
     Ti = zerov8
     t = zerov8
-    for i in 0:49
-        Zi = 2f0 .* Zr .* Zi .+ ci
-        Zr = Tr .- Ti .+ cr
-        Tr = Zr .* Zr
-        Ti = Zi .* Zi
+    i = 0
+
+    while i<50
+        for _ in 1:5
+            Zr,Zi,Tr,Ti = step_mandel(Zr,Zi,Tr,Ti,cr,ci)
+            i += 1
+        end
         t = Tr .+ Ti
         all(x-> x > 4f0, t) && break
     end
