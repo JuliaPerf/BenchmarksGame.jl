@@ -1,7 +1,6 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 #
-# contributed by Alex Arslan
 
 mutable struct PushVector{T, A<:AbstractVector{T}} <: AbstractVector{T}
     v::A

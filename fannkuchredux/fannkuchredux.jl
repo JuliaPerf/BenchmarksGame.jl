@@ -1,7 +1,6 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 
-# contributed by Alex Arslan
 # based on the Javascript program
 
 function perf_fannkuch(n)

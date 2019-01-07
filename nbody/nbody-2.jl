@@ -1,8 +1,7 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 
-# contributed by Steven G. Johnson, Alex Arslan,
-#    Kristoffer Carlsson
+# contributed by Steven G. Johnson, Kristoffer Carlsson
 # based on the Java version and vectorized
 
 module NBody

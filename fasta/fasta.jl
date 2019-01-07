@@ -1,7 +1,6 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 #
-# contributed by Alex Arslan
 
 const line_width = 60
 

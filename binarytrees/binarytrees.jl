@@ -1,7 +1,6 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 
-# contributed by Alex Arslan
 # based on an OCaml program
 # *reset*
 
