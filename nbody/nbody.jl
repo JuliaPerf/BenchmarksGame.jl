@@ -1,7 +1,7 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 
-# contributed by Jarret Revels and Alex Arslan
+# contributed by Alex Arslan
 # based on the Java version
 
 module NBody
@@ -134,4 +134,3 @@ end # module
 
 n = parse(Int,ARGS[1])
 NBody.perf_nbody(n)
-

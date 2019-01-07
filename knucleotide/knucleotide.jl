@@ -3,7 +3,7 @@
 #
 # contributed by David Campbell
 # based on the Go version
-# modified by Jarret Revels, Alex Arslan, Yichao Yu
+# modified by Jarrett Revels, Alex Arslan, Yichao Yu
 
 using Printf
 
@@ -94,4 +94,3 @@ end
 
 perf_k_nucleotide()
 # perf_k_nucleotide(open("knucleotide-input.txt", "r"))
-

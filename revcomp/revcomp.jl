@@ -2,7 +2,7 @@
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 #
 # contributed by David Campbell
-# modified by Jarret Revels, Kristoffer Carlsson, Alex Arslan
+# modified by Jarrett Revels, Kristoffer Carlsson, Alex Arslan
 
 const revcompdata = Dict(
    'A'=> 'T', 'a'=> 'T',
