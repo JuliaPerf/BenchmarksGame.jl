@@ -2,7 +2,7 @@
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 #
 # contributed by David Campbell
-# modified by Jarret Revels, Kristoffer Carlsson, Alex Arslan
+# modified by Jarrett Revels, Kristoffer Carlsson, Alex Arslan
 
 mutable struct PushVector{T, A<:AbstractVector{T}} <: AbstractVector{T}
     v::A

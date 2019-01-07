@@ -1,9 +1,8 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 
-# contributed by Jarret Revels and Alex Arslan
 # based on an OCaml program
-# *reset* 
+# *reset*
 
 using Printf
 
@@ -33,7 +32,7 @@ function loop_depths(d, min_depth, max_depth)
         niter = 1 << (max_depth - d + min_depth)
         c = 0
         for j = 1:niter
-            c += check(make(d)) 
+            c += check(make(d))
         end
         @printf("%i\t trees of depth %i\t check: %i\n", niter, d, c)
         d += 2
@@ -59,4 +58,3 @@ end
 
 n = parse(Int,ARGS[1])
 perf_binary_trees(n)
-

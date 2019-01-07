@@ -3,7 +3,7 @@
 #
 # contributed by Daniel Jones
 # fixed by David Campbell
-# modified by Jarret Revels, Alex Arslan, Yichao Yu
+# modified by Jarrett Revels, Alex Arslan, Yichao Yu
 
 using Printf
 
@@ -53,4 +53,3 @@ function perf_regex_dna()
 end
 
 perf_regex_dna()
-

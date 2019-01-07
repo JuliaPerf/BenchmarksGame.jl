@@ -1,7 +1,6 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 
-# contributed by Jarret Revels
 # based on Mario Pernici Python's program
 
 print_line(ns, i) = println(rpad(string(ns), 10), '\t', ':', i)
