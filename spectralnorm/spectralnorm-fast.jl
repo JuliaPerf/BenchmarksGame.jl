@@ -45,7 +45,7 @@ function perf_spectralnorm(n::Int=100)
         AtAu!(w, v, u)
         AtAu!(w, u, v)
     end
-    @inbounds @simd for i = 1:n
+    for i = 1:n
         vBv += u[i]*v[i]
         vv += v[i]*v[i]
     end
