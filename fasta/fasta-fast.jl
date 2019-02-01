@@ -1,38 +1,5 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
-#
-# contributed by Jarret Revels and Alex Arslan
-
-mutable struct PushVector{T, A<:AbstractVector{T}} <: AbstractVector{T}
-    v::A
-    l::Int
-end
-
-PushVector{T}() where {T} = PushVector(Vector{T}(undef, 0), 0)
-
-Base.IndexStyle(::Type{PushVector{<:Any, A}}) where {A} = IndexStyle(A)
-Base.length(v::PushVector) = v.l
-Base.size(v::PushVector) = (v.l,)
-@inline function Base.getindex(v::PushVector, i)
-    @boundscheck checkbounds(v, i)
-    @inbounds v.v[i]
-end
-
-function Base.push!(v::PushVector, i)
-    v.l += 1
-    if v.l > length(v.v)
-        resize!(v.v, v.l * 2)
-    end
-    v.v[v.l] = i
-    return v
-end
-
-function Base.write(v::PushVector{UInt8}, s::String)
-    for c in codeunits(s)
-        push!(v, c)
-    end
-end
-Base.write(v::PushVector{UInt8}, c::UInt8) = push!(v, c)
 
 const line_width = 60
 
@@ -61,7 +28,6 @@ function repeat_fasta(io, src, n)
     k = length(src)
     s = string(src, src, src[1:(n % k)])
     I = Iterators.cycle(src)
-    # I = Iterators.cycle(codeunits(src))
     col = 1
     count = 1
     c, state = iterate(I)
@@ -71,12 +37,12 @@ function repeat_fasta(io, src, n)
         c, state = iterate(I, state)
         write(io, c % UInt8)
         if col == line_width
-            write(io, '\n' % UInt8)
+            write(io, '\n')
             col = 0
         end
         count += 1
     end
-    write(io, '\n' % UInt8)
+    write(io, '\n')
     return
 end
 
@@ -111,8 +77,7 @@ function random_fasta(io, symb, pr, n)
     return
 end
 
-function perf_fasta(_n=25000000, _io = stdout)
-  io = PushVector{UInt8}()
+function perf_fasta(_n=25000000, io = stdout)
   write(io, ">ONE Homo sapiens alu\n")
   repeat_fasta(io, alu, 2n)
 
@@ -120,8 +85,6 @@ function perf_fasta(_n=25000000, _io = stdout)
   random_fasta(io, iub1, iub2, 3n)
   write(io, ">THREE Homo sapiens frequency\n")
   random_fasta(io, homosapiens1, homosapiens2, 5n)
-  z = resize!(io.v, length(io))
-  write(_io, z)
 end
 
 n = parse(Int,ARGS[1])

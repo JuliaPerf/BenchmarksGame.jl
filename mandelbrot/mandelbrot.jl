@@ -2,7 +2,7 @@
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 #
 # contributed by David Campbell
-# modified by Jarret Revels, Alex Arslan
+# modified by Jarrett Revels, Alex Arslan
 
 const ITER = 50
 

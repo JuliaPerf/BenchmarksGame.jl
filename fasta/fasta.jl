@@ -1,7 +1,6 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 #
-# contributed by Jarret Revels and Alex Arslan
 
 const line_width = 60
 
@@ -97,4 +96,3 @@ end
 
 n = parse(Int,ARGS[1])
 perf_fasta(n)
-

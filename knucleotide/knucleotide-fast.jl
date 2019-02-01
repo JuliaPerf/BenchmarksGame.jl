@@ -3,7 +3,7 @@
 #
 # contributed by David Campbell
 # based on the Go version
-# modified by Jarret Revels, Alex Arslan, Yichao Yu
+# modified by Jarrett Revels, Alex Arslan, Yichao Yu
 #
 # Bit-twiddle optimizations added by Kristoffer Carlsson
 

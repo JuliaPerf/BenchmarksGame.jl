@@ -1,14 +1,14 @@
 # The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 
-# contributed by Jarret Revels
 # based on the Javascript program
+# optimizations by Kristoffer Carlsson
 
 using Printf
 
 A(i,j) = 1.0 / ( (((i+j)*(i+j+1)) >> 1) + i+1)
 
-@inline function Au!(w, u)
+function Au!(w, u)
     n = length(u)
     Threads.@threads for i = 1:n
         w[i] = 0
@@ -20,7 +20,7 @@ A(i,j) = 1.0 / ( (((i+j)*(i+j+1)) >> 1) + i+1)
     end
 end
 
-@inline function Atu!(v, w)
+function Atu!(v, w)
     n = length(w)
     Threads.@threads for i = 1:n
         z = 0.0
@@ -31,18 +31,21 @@ end
     end
 end
 
+function AtAu!(w, v, u)
+    Au!(w, u)
+    Atu!(v, w)
+end
+
 function perf_spectralnorm(n::Int=100)
     u = ones(Float64, n)
     v = zeros(Float64 ,n)
     w = zeros(Float64, n)
     vv = vBv = 0
     for i = 1:10
-        Au!(w, u)
-        Atu!(v, w)
-        Au!(w, v)
-        Atu!(u, w)
+        AtAu!(w, v, u)
+        AtAu!(w, u, v)
     end
-    @inbounds @simd for i = 1:n
+    for i = 1:n
         vBv += u[i]*v[i]
         vv += v[i]*v[i]
     end
