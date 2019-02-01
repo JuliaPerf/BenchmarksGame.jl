@@ -2,7 +2,7 @@
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 
 # based on Oleg Mazurov's Java Implementation and Jeremy Zerfas' C implementation
-# transliterated by Hamza Yusuf Çakır
+# transliterated and modified by Hamza Yusuf Çakır
 
 global const preferred_num_blocks = 24
 
@@ -42,7 +42,7 @@ Base.@propagate_inbounds @inline function first_permutation(perm::Perm, idx)
     pp = perm.pp
 
     for i = 2:length(p)
-        p[i] = i - 1
+        p[i] = (i - 1) % Int8
     end
 
     for i = length(p):-1:2
@@ -102,7 +102,7 @@ Base.@propagate_inbounds @inline function count_flips(perm::Perm)
         while true
             flips += one(flips)
             new_first = pp[first]
-            pp[first] = first - 1
+            pp[first] = (first - 1) % Int8
 
             if first > 3
                 lo = 2; hi = first - 1
@@ -134,7 +134,7 @@ Base.@propagate_inbounds function run_task(f::Fannkuch, perm::Perm, idxmin, idxm
     while true
         if perm.p[1] != 0
             flips = count_flips(perm)
-            maxflips = max(maxflips, flips)
+            (flips > maxflips) && (maxflips = flips)
             chksum += iseven(i) ? flips : -flips
         end
         i != idxmax || break
@@ -143,7 +143,7 @@ Base.@propagate_inbounds function run_task(f::Fannkuch, perm::Perm, idxmin, idxm
     end
 
     id = Threads.threadid()
-    f.maxflips[id] = max(f.maxflips[id], maxflips)
+    (maxflips > f.maxflips[id]) && (f.maxflips[id] = maxflips)
     f.chksums[id] += chksum
     nothing
 end
