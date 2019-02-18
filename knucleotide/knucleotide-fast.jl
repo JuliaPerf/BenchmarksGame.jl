@@ -10,9 +10,6 @@
 using Distributed
 using Printf
 
-addprocs(4)
-
-@everywhere begin
 const NucleotideLUT = zeros(UInt8, 256)
 NucleotideLUT['A'%UInt8] = 0
 NucleotideLUT['C'%UInt8] = 1
@@ -117,8 +114,6 @@ end
 do_work(str::String, i::Int) = sorted_array(count_data(str, KNucleotides{i,determine_inttype(i)}))
 do_work(str::String, i::String) = count_one(str, i)
 
-end # @everywhere
-
 function print_knucs(a::Array{KNuc, 1})
     sum = 0
     for kn in a
@@ -141,16 +136,10 @@ function perf_k_nucleotide(io = stdin)
     data = read(io, String)
     str = filter(!isequal('\n'), data)
 
-    vs = [1, 2, "GGT", "GGTA", "GGTATT", "GGTATTTTAATT", "GGTATTTTAATTTATAGT"]
+    vs = (1, 2, "GGT", "GGTA", "GGTATT", "GGTATTTTAATT", "GGTATTTTAATTTATAGT")
     results = Vector{Any}(undef, length(vs))
-    order = collect(enumerate(vs))
-
-    @sync for w in workers()
-        @async while !isempty(order)
-            v = pop!(order)
-            r = remotecall_fetch(do_work, w, str, v[2])
-            results[v[1]] = r
-        end
+    for (i, v) in enumerate(vs)
+        results[i] = do_work(w, str, v[2])
     end
 
     for (v, result) in zip(vs, results)

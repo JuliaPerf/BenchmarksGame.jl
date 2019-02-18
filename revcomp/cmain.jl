@@ -95,8 +95,10 @@ function perf_revcomp(io=stdin, outio = stdout)
     end
 end
 Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
-
     perf_revcomp()
     return 0
 end
 
+open(joinpath(@__DIR__, "revcomp-input.txt")) do io
+    perf_revcomp(io, IOBuffer())
+end

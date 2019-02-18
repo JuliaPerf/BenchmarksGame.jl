@@ -125,12 +125,13 @@ function perf_nbody(N::Int=1000)
     end
     @printf("%.9f\n", energy(bodies))
 end
-Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
 
-    end # module
+end
+
+Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
     n = parse(Int,ARGS[1])
     NBody.perf_nbody(n)
     return 0
 end
 
-julia_main(["50000000"])
+julia_main(["50000"])

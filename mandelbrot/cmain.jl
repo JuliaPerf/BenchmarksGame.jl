@@ -70,10 +70,11 @@ function mandelbrot(n = 200, io = stdout)
     write(io, "P4\n$n $n\n")
     write(io, rows)
 end
-Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
 
-    mandelbrot(parse(Int, ARGS[1]), stdout)
+Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
+    n = parse(Int, ARGS[1])
+    mandelbrot(n, stdout)
     return 0
 end
 
-mandelbrot(160, IOBuffer())
+julia_main(["8"])

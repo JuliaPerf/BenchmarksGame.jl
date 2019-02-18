@@ -3,14 +3,7 @@
 
 const line_width = 60
 
-const alu = string(
-   "GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGG",
-   "GAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGAGA",
-   "CCAGCCTGGCCAACATGGTGAAACCCCGTCTCTACTAAAAAT",
-   "ACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAATCCCA",
-   "GCTACTCGGGAGGCTGAGGCAGGAGAATCGCTTGAACCCGGG",
-   "AGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTGCACTCC",
-   "AGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA")
+const alu = b"GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGGGAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGAGACCAGCCTGGCCAACATGGTGAAACCCCGTCTCTACTAAAAATACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAATCCCAGCTACTCGGGAGGCTGAGGCAGGAGAATCGCTTGAACCCGGGAGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTGCACTCCAGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA"
 
 const iub1 = b"acgtBDHKMNRSVWY"
 const iub2 = [0.27, 0.12, 0.12, 0.27, 0.02,0.02, 0.02, 0.02, 0.02, 0.02,0.02, 0.02, 0.02, 0.02, 0.02]
@@ -31,18 +24,18 @@ function repeat_fasta(io, src, n)
     col = 1
     count = 1
     c, state = iterate(I)
-    write(io, c % UInt8)
+    write(io, c)
     while count < n
         col += 1
         c, state = iterate(I, state)
-        write(io, c % UInt8)
+        write(io, c)
         if col == line_width
-            write(io, '\n')
+            write(io, '\n' % UInt8)
             col = 0
         end
         count += 1
     end
-    write(io, '\n')
+    write(io, '\n' % UInt8)
     return
 end
 
@@ -77,7 +70,7 @@ function random_fasta(io, symb, pr, n)
     return
 end
 
-function perf_fasta(_n=25000000, io = stdout)
+function perf_fasta(n=25000000, io = stdout)
   write(io, ">ONE Homo sapiens alu\n")
   repeat_fasta(io, alu, 2n)
 
@@ -87,5 +80,5 @@ function perf_fasta(_n=25000000, io = stdout)
   random_fasta(io, homosapiens1, homosapiens2, 5n)
 end
 
-n = parse(Int,ARGS[1])
-perf_fasta(n)
+# n = parse(Int,ARGS[1])
+@time perf_fasta(25000000, IOBuffer())

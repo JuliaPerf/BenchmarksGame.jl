@@ -27,8 +27,8 @@ const subs = [
     (r"\|[^|][^|]*\|", "-")
 ]
 
-function perf_regex_dna()
-    seq = read(stdin, String)
+function perf_regex_dna(io = stdin)
+    seq = read(io, String)
     l1 = length(seq)
 
     seq = replace(seq, r">.*\n|\n" => "")
@@ -52,8 +52,10 @@ function perf_regex_dna()
     println(length(seq))
 end
 Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
-
     perf_regex_dna()
     return 0
 end
 
+open(joinpath(@__DIR__, "regexredux-input.txt")) do io
+    perf_regex_dna(io)
+end
