@@ -25,7 +25,7 @@ end
 open(joinpath(@__DIR__, "image.jl"), "w") do io
     for bench in benchmarks
         input = joinpath(@__DIR__, "..", bench, string(bench, "-input.txt"))
-        isfile(input) && cp(input, joinpath(@__DIR__, string(bench, "-input.txt")))
+        isfile(input) && cp(input, joinpath(@__DIR__, string(bench, "-input.txt")), force = true)
         jlfile = joinpath(@__DIR__, "..", bench, "cmain.jl")
         println(io, "module ", titlecase(bench))
         print(io, replace(read(jlfile, String), "julia_main" => string(bench, "_main")))
