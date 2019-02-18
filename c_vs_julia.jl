@@ -32,8 +32,5 @@ timings = map(benchmarks) do (bench, arg)
      @elapsed run(pipeline(`$() $argcmd`; args...))
   end
   ctime = @elapsed run(pipeline(`./$bench $argcmd`; args...))
-  (jltime, ctime)
+  (julia = jltime, cpp = ctime)
 end
-
-
-run(pipeline(`./revcomp $argcmd`, stdin = fasta_gen))

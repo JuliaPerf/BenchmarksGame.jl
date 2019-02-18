@@ -21,6 +21,7 @@ if Sys.iswindows()
 end
 
 # Concat all cmains into one shared image (speeds up compilation a lot)!
+@info "creating one big image file"
 open(joinpath(@__DIR__, "image.jl"), "w") do io
     for bench in benchmarks
         input = joinpath(@__DIR__, "..", bench, string(bench, "-input.txt"))
@@ -34,13 +35,15 @@ open(joinpath(@__DIR__, "image.jl"), "w") do io
     end
 end
 # build the image/shared library
+@info "building shared image file"
+
 build_shared_lib(
     joinpath(@__DIR__, "image.jl"), "bench_image", # Julia script containing a `julia_main` function, e.g. like `examples/hello.jl`
     builddir = joinpath(@__DIR__, "image"), # that's where the compiled artifacts will end up [optional]
 )
 
 # Create an executable for each benchmark, linking into the image
-
+@info "building executables"
 mkpath(joinpath(@__DIR__, "cdriver"))
 for bench in benchmarks
     cprog = joinpath(@__DIR__, "cdriver", "program.c")
