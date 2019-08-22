@@ -1,8 +1,9 @@
 using DeepDiffs
 using TimerOutputs
 
-verify = "verify" in ARGS
-num_threads = 4
+const VERIFY = "verify" in ARGS
+const NUM_THREADS = 4
+const CPU_TARGET = "core2"
 
 struct Benchmark
     name::String
@@ -26,12 +27,12 @@ const BENCHMARKS = [
 ]
 
 function run_benchmarks()
-    verify && println("VERIFYING!")
+    VERIFY && println("VERIFYING!")
     errored = false
     result_file = "result.bin"
     TimerOutputs.reset_timer!()
     for benchmark in BENCHMARKS
-        if !verify && benchmark.requires_fasta
+        if !VERIFY && benchmark.requires_fasta
             if !isfile(joinpath(@__DIR__, "fasta.txt"))
                 fasta_gen = joinpath(@__DIR__, "fasta", "fasta.jl")
                 @info "Generating fasta file"
@@ -39,7 +40,7 @@ function run_benchmarks()
             end
         end
         dir = benchmark.name
-        _arg = verify ? benchmark.verify : benchmark.benchmark
+        _arg = VERIFY ? benchmark.verify : benchmark.benchmark
         println("Running $dir")
         bdir = joinpath(@__DIR__, dir)
         arg, input = _arg isa String ? ("", "$(_arg)") : (string(_arg), "")
@@ -47,15 +48,17 @@ function run_benchmarks()
             for file in readdir(bdir)
                 endswith(file, ".jl") || continue
                 println("    $file:")
-                withenv("JULIA_NUM_THREADS" => num_threads) do
+                withenv("JULIA_NUM_THREADS" => NUM_THREADS) do
                     if !isempty(input)
-                        cmd = pipeline(`$(Base.julia_cmd()) $(joinpath(bdir, file)) `; stdin=input, stdout = result_file)
+                        cmd = pipeline(`$(Base.julia_cmd()) --cpu-target=$CPU_TARGET $(joinpath(bdir, file))`;
+                                       stdin=input, stdout = result_file)
                     else
-                        cmd = pipeline(`$(Base.julia_cmd()) $(joinpath(bdir, file)) $(arg)`; stdout = result_file)
+                        cmd = pipeline(`$(Base.julia_cmd()) --cpu-target=$CPU_TARGET $(joinpath(bdir, file)) $(arg)`;
+                                       stdout = result_file)
                     end
                     @timeit file run(cmd)
                 end
-                if verify
+                if VERIFY
                     bench_output = read(result_file, String)
                     correct_output = read(joinpath(bdir, string(dir, "-output.txt")), String)
                     if bench_output != correct_output
