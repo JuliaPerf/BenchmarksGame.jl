@@ -1,16 +1,16 @@
-The following programs are derived from JuliaCI / BaseBenchmarks.jl and licensed under the MIT "Expat" License:
+The following programs are derived from https://github.com/JuliaCI/BaseBenchmarks.jl and licensed under the MIT "Expat" License:
 
-binarytrees.julia
-fannkuchredux.julia
-fasta.julia
-knucleotide.julia
-mandelbrot.julia
-nbody.julia
-nbody.julia-2.julia
-pidigits.julia
-regexredux.julia
-revcomp.julia
-spectralnorm.julia
+- [binarytrees.jl](./binarytrees/binarytrees.jl)
+- [fannkuchredux.jl](./fannkuchredux/fannkuchredux.jl)
+- [fasta.jl](./fasta/fasta.jl)
+- [knucleotide.jl](./knucleotide/knucleotide.jl)
+- [mandelbrot.jl](./mandelbrot/mandelbrot.jl)
+- [nbody.jl](./nbody/nbody.jl)
+- [nbody-2.jl](./nbody/nbody-2.jl)
+- [pidigits.jl](./pidigits/pidigits.jl)
+- [regexredux.jl](./regexredux/regexredux.jl)
+- [revcomp.jl](./revcomp/revcomp.jl)
+- [spectralnorm.jl](./revcomp/spectralnorm.jl)
 
 -------------------
 
