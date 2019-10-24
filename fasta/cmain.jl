@@ -3,7 +3,14 @@
 
 const line_width = 60
 
-const alu = b"GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGGGAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGAGACCAGCCTGGCCAACATGGTGAAACCCCGTCTCTACTAAAAATACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAATCCCAGCTACTCGGGAGGCTGAGGCAGGAGAATCGCTTGAACCCGGGAGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTGCACTCCAGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA"
+const alu = string(
+   "GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGG",
+   "GAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGAGA",
+   "CCAGCCTGGCCAACATGGTGAAACCCCGTCTCTACTAAAAAT",
+   "ACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAATCCCA",
+   "GCTACTCGGGAGGCTGAGGCAGGAGAATCGCTTGAACCCGGG",
+   "AGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTGCACTCC",
+   "AGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA")
 
 const iub1 = b"acgtBDHKMNRSVWY"
 const iub2 = [0.27, 0.12, 0.12, 0.27, 0.02,0.02, 0.02, 0.02, 0.02, 0.02,0.02, 0.02, 0.02, 0.02, 0.02]
@@ -24,18 +31,18 @@ function repeat_fasta(io, src, n)
     col = 1
     count = 1
     c, state = iterate(I)
-    write(io, c)
+    write(io, c % UInt8)
     while count < n
         col += 1
         c, state = iterate(I, state)
-        write(io, c)
+        write(io, c % UInt8)
         if col == line_width
-            write(io, '\n' % UInt8)
+            write(io, '\n')
             col = 0
         end
         count += 1
     end
-    write(io, '\n' % UInt8)
+    write(io, '\n')
     return
 end
 
@@ -79,6 +86,10 @@ function perf_fasta(n=25000000, io = stdout)
   write(io, ">THREE Homo sapiens frequency\n")
   random_fasta(io, homosapiens1, homosapiens2, 5n)
 end
+Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
+    n = parse(Int, ARGS[1])
+    perf_fasta(n)
+    return 0
+end
 
-# n = parse(Int,ARGS[1])
-@time perf_fasta(25000000, IOBuffer())
+perf_fasta(25000, IOBuffer())

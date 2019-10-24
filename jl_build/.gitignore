@@ -1,0 +1,13 @@
+image
+image.jl
+*-input.txt
+cdriver/binarytrees.c
+cdriver/fannkuchredux.c
+cdriver/fasta.c
+cdriver/knucleotide.c
+cdriver/mandelbrot.c
+cdriver/nbody.c
+cdriver/pidigits.c
+cdriver/regexredux.c
+cdriver/revcomp.c
+cdriver/spectralnorm.c

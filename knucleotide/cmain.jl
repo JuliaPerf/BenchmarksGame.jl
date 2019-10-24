@@ -1,4 +1,4 @@
-# The Computer Language Benchmarks Game
+# Th# The Computer Language Benchmarks Game
 # https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 #
 # contributed by David Campbell
@@ -7,7 +7,6 @@
 #
 # Bit-twiddle optimizations added by Kristoffer Carlsson
 
-using Distributed
 using Printf
 
 const NucleotideLUT = zeros(UInt8, 256)
@@ -111,21 +110,21 @@ function sorted_array(m)
     sort!(kn)
 end
 
-do_work(str::String, i::Int) = sorted_array(count_data(str, KNucleotides{i,determine_inttype(i)}))
+do_work(str::String, i::Int) = sorted_array(count_data(str, KNucleotides{i, determine_inttype(i)}))
 do_work(str::String, i::String) = count_one(str, i)
 
-function print_knucs(a::Array{KNuc, 1})
+function print_knucs(io, a::Array{KNuc, 1})
     sum = 0
     for kn in a
         sum += kn.count
     end
     for kn in a
-        @printf("%s %.3f\n", kn.name, 100.0kn.count/sum)
+        @printf(io, "%s %.3f\n", kn.name, 100.0kn.count/sum)
     end
-    println()
+    println(io)
 end
 
-function perf_k_nucleotide(io = stdin)
+function perf_k_nucleotide(io = stdin, output = stdout)
     three = ">THREE "
     while true
         line = readline(io)
@@ -133,23 +132,30 @@ function perf_k_nucleotide(io = stdin)
             break
         end
     end
-    data = read(io, String)
-    str = filter(!isequal('\n'), data)
-
+    str = sprint() do sio
+        foreach(line-> write(sio, line), eachline(io))
+    end
     vs = (1, 2, "GGT", "GGTA", "GGTATT", "GGTATTTTAATT", "GGTATTTTAATTTATAGT")
     results = Vector{Any}(undef, length(vs))
-    for (i, v) in enumerate(vs)
-        results[i] = do_work(w, str, v[2])
+    Threads.@threads for i in length(vs):-1:1
+        results[i] = do_work(str, vs[i])
     end
 
     for (v, result) in zip(vs, results)
         if result isa Array
-            print_knucs(result)
+            print_knucs(output, result)
         end
         if result isa Int
-            @printf("%d\t%s\n", result, v)
+            @printf(output, "%d\t%s\n", result, v)
         end
     end
 end
 
-perf_k_nucleotide()
+Base.@ccallable function julia_main(ARGS::Vector{String})::Cint
+    perf_k_nucleotide()
+    return 0
+end
+
+open(joinpath(@__DIR__, "knucleotide-input.txt")) do io
+    perf_k_nucleotide(io, IOBuffer())
+end
