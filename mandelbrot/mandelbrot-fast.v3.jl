@@ -8,6 +8,8 @@ The Computer Language Benchmarks Game
  modified for Julia 1.0 by Simon Danisch.
  tweaked for performance by https://github.com/maltezfaria and Adam Beckmeyer.
 =#
+using KissThreading
+
 const zerov8 = ntuple(x-> 0f0, 8)
 const masks = (0b01111111, 0b10111111, 0b11011111, 0b11101111, 0b11110111,
                0b11111011, 0b11111101, 0b11111110)
@@ -52,14 +54,9 @@ function mandelbrot(io, n = 200)
     end
 
     rows = Vector{UInt8}(undef, n^2 ÷ 8)
-    @sync for y=1:n
-        @inbounds ci = yvals[y]
-        # This allows dynamic scheduling instead of static scheduling
-        # of Threads.@threads macro. See
-        # https://github.com/JuliaLang/julia/issues/21017 . On some
-        # computers this is faster, on others not.
-        Threads.@spawn mandel_inner(rows, ci, y, n, xvals)
-    end
+    f(y) = @inbounds mandel_inner(rows, yvals[y], y, n, xvals)
+    tmap!(f, Vector{Nothing}(undef, n), collect(1:n); batch_size=8)
+
     write(io, "P4\n$n $n\n")
     write(io, rows)
 end
