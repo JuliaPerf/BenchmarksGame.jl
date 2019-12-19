@@ -4,39 +4,40 @@
 # based on an OCaml program
 # *reset*
 
+using Distributed
 using Printf
 
-abstract type BTree end
+@everywhere abstract type BTree end
 
-mutable struct Empty <: BTree
+@everywhere struct Node <: BTree
+  left::Union{Nothing,Node}
+  right::Union{Nothing,Node}
 end
 
-mutable struct Node <: BTree
-    left::BTree
-    right::BTree
-end
-
-function make(d)
+@everywhere function make(d)
     if d == 0
-        Node(Empty(), Empty())
+        Node(nothing, nothing)
     else
         Node(make(d-1), make(d-1))
     end
 end
 
-check(t::Empty) = 0
-check(t::Node) = 1 + check(t.left) + check(t.right)
+@everywhere check(t::Nothing) = 0
+@everywhere check(t::Node) = 1 + check(t.left) + check(t.right)
 
-function loop_depths(d, min_depth, max_depth)
-    for i = 0:div(max_depth - d, 2)
+function loop_depths(min_depth, max_depth)
+    out = @distributed vcat for d in min_depth:2:max_depth
         niter = 1 << (max_depth - d + min_depth)
         c = 0
         for j = 1:niter
             c += check(make(d))
         end
-        @printf("%i\t trees of depth %i\t check: %i\n", niter, d, c)
-        d += 2
+        @sprintf("%i\t trees of depth %i\t check: %i\n", niter, d, c)
     end
+    for s in out
+      print(s)
+    end
+
 end
 
 function perf_binary_trees(N::Int=10)
@@ -51,7 +52,7 @@ function perf_binary_trees(N::Int=10)
 
     long_lived_tree = make(max_depth)
 
-    loop_depths(min_depth, min_depth, max_depth)
+    loop_depths(min_depth, max_depth)
     @printf("long lived tree of depth %i\t check: %i\n", max_depth, check(long_lived_tree))
 
 end
