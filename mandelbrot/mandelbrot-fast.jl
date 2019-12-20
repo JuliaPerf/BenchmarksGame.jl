@@ -8,7 +8,7 @@ The Computer Language Benchmarks Game
  modified for Julia 1.0 by Simon Danisch.
  tweaked for performance by https://github.com/maltezfaria and Adam Beckmeyer.
 =#
-const zerov8 = ntuple(x-> 0f0, 8)
+const zerov8 = ntuple(x-> 0.0, 8)
 const masks = (0b01111111, 0b10111111, 0b11011111, 0b11101111, 0b11110111,
                0b11111011, 0b11111101, 0b11111110)
 
@@ -19,13 +19,13 @@ Base.@propagate_inbounds function mand8(cr, ci)
 
     for _=1:10
         for _=1:5
-            Zi = 2f0 .* Zr .* Zi .+ ci
+            Zi = 2.0 .* Zr .* Zi .+ ci
             Zr = Tr .- Ti .+ cr
             Tr = Zr .* Zr
             Ti = Zi .* Zi
         end
         t = Tr .+ Ti
-        all(x-> x > 4f0, t) && (return 0x00)
+        all(x-> x > 4.0, t) && (return 0x00)
     end
 
     byte = 0xff
@@ -44,8 +44,8 @@ end
 
 function mandelbrot(io, n = 200)
     inv_ = 2.0 / n
-    xvals = Vector{Float32}(undef, n)
-    yvals = Vector{Float32}(undef, n)
+    xvals = Vector{Float64}(undef, n)
+    yvals = Vector{Float64}(undef, n)
     @inbounds for i in 0:(n-1)
         xvals[i + 1] = i * inv_ - 1.5
         yvals[i + 1] = i * inv_ - 1.0
