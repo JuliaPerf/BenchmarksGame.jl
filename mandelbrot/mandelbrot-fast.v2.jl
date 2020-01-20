@@ -52,13 +52,9 @@ function mandelbrot(io, n = 200)
     end
 
     rows = Vector{UInt8}(undef, n^2 ÷ 8)
-    @sync for y=1:n
+    Threads.@threads for y=1:n
         @inbounds ci = yvals[y]
-        # This allows dynamic scheduling instead of static scheduling
-        # of Threads.@threads macro. See
-        # https://github.com/JuliaLang/julia/issues/21017 . On some
-        # computers this is faster, on others not.
-        Threads.@spawn mandel_inner(rows, ci, y, n, xvals)
+        mandel_inner(rows, ci, y, n, xvals)
     end
     write(io, "P4\n$n $n\n")
     write(io, rows)
